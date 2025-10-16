@@ -1,6 +1,8 @@
 using UnityEngine;
 
-public class PlayerController : MonoBehaviour
+// ファイル名は PlayerController.cs ですが、クラス名は PlayerViewController になっていますね。
+// このまま動作しますが、もし意図しないものであればファイル名とクラス名を合わせることをお勧めします。
+public class PlayerViewController : MonoBehaviour
 {
     void Start()
     {
@@ -53,14 +55,15 @@ public class PlayerController : MonoBehaviour
         {
             transform.position = targetPosition;
         }
+        // ↓↓↓↓ ここを修正 ↓↓↓↓
         else if (targetCellType == 2) // 2は階段
         {
-            MapGenerator.instance.ChangeMap(MapGenerator.level2);
+            // プレイヤーを新しいマップの初期位置に移動させる
             SetInitialPosition(false);
         }
+        // ↑↑↑↑ ここまで修正 ↑↑↑↑
     }
 
-    // ↓↓↓↓ ここを修正 ↓↓↓↓
     // プレイヤーを初期位置に設定するメソッド
     void SetInitialPosition(bool isFirstTime)
     {
@@ -73,27 +76,21 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            // 新しいマップ(level_new)のスタート位置
+            // 新しいマップ(level2)のスタート位置
             newPosition = new Vector3(-6.5f, transform.position.y, -6.5f);
         }
 
-        // --- ここからが修正箇所 ---
-        // CharacterControllerがアタッチされている場合、一度無効にしてから座標をセットする
         CharacterController cc = GetComponent<CharacterController>();
         if (cc != null)
         {
             cc.enabled = false;
         }
 
-        // 座標を更新
         transform.position = newPosition;
 
-        // CharacterControllerを再度有効にする
         if (cc != null)
         {
             cc.enabled = true;
         }
-        // --- ここまで ---
     }
-    // ↑↑↑↑ ここまで修正 ↑↑↑↑
 }

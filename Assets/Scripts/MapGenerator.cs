@@ -37,7 +37,7 @@ public class MapGenerator : MonoBehaviour
     public static int[,] level2 = new int[16, 16]
     {
         {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-        {1,0,0,0,1,0,0,0,0,1,0,0,0,0,0,1}, // level_newのスタート地点(1,1) -> (-6.5f, y, -6.5f)
+        {1,0,0,0,1,0,0,0,0,1,0,0,0,0,0,1},
         {1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1},
         {1,0,1,1,1,0,1,0,0,1,0,0,0,1,0,1},
         {1,0,0,0,0,0,1,0,1,1,1,1,0,1,0,1},
@@ -59,7 +59,6 @@ public class MapGenerator : MonoBehaviour
 
     void Awake()
     {
-        // シングルトンパターンの実装
         if (instance == null)
         {
             instance = this;
@@ -72,33 +71,25 @@ public class MapGenerator : MonoBehaviour
 
     void Start()
     {
-        // 初期マップをlevel1に設定して生成
         map = level1;
         GenerateMap();
     }
 
-    // マップを切り替えて再生成する公開メソッド
     public void ChangeMap(int[,] newMap)
     {
-        // 既にマップが生成されている場合は、古いマップを破棄する
         if (mapHolder != null)
         {
             Destroy(mapHolder);
         }
-
-        // 新しいマップデータをセット
         map = newMap;
-
-        // 新しいマップを生成
         GenerateMap();
     }
 
     void GenerateMap()
     {
-        // 生成した壁をまとめるための親オブジェクトを作成
         mapHolder = new GameObject("Map Holder");
 
-        // (元のGenerateMapメソッドの中身は変更ありません。以下にそのまま記述します)
+        // 高さ1の壁を生成
         for (int z = 0; z < 16; z++)
         {
             for (int x = 0; x < 16; x++)
@@ -113,6 +104,7 @@ public class MapGenerator : MonoBehaviour
             }
         }
 
+        // 高さ0の床と階段を生成
         for (int z = 0; z < 16; z++)
         {
             for (int x = 0; x < 16; x++)
@@ -132,6 +124,8 @@ public class MapGenerator : MonoBehaviour
             }
         }
 
+        // ↓↓↓↓ ここを修正 ↓↓↓↓
+        // 高さ2の天井を生成（壁の上のみ）
         for (int z = 0; z < 16; z++)
         {
             for (int x = 0; x < 16; x++)
@@ -142,7 +136,9 @@ public class MapGenerator : MonoBehaviour
                 Instantiate(wallPrefab, wallPosition, Quaternion.identity, mapHolder.transform);
             }
         }
+        // ↑↑↑↑ ここまで修正 ↑↑↑↑
 
+        // 高さ6の壁を生成
         for (int z = 0; z < 16; z++)
         {
             for (int x = 0; x < 16; x++)
@@ -157,6 +153,7 @@ public class MapGenerator : MonoBehaviour
             }
         }
 
+        // 高さ5の床/天井と、見えない階段を生成
         for (int z = 0; z < 16; z++)
         {
             for (int x = 0; x < 16; x++)
@@ -164,7 +161,7 @@ public class MapGenerator : MonoBehaviour
                 float posX = x - 7.5f;
                 float posZ = z - 7.5f;
                 Vector3 wallPosition = new Vector3(posX, 5f, posZ);
-                Vector3 stairsPosition = new Vector3(posX, -4.55f, posZ);
+                Vector3 stairsPosition = new Vector3(posX, -4.55f, posZ); // y座標は画面外なので影響しない
                 if (map[z, x] == 2)
                 {
                     Instantiate(StairsPrefab, stairsPosition, Quaternion.identity, mapHolder.transform);
