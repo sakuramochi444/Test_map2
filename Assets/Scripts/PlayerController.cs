@@ -1,13 +1,38 @@
-using UnityEngine;
+ï»¿using UnityEngine;
+using System.Collections; // ã‚³ãƒ«ãƒ¼ãƒãƒ³ã‚’ä½¿ç”¨ã™ã‚‹ãŸã‚ã«è¿½åŠ 
 
-// ƒtƒ@ƒCƒ‹–¼‚Í PlayerController.cs ‚Å‚·‚ªAƒNƒ‰ƒX–¼‚Í PlayerViewController ‚É‚È‚Á‚Ä‚¢‚Ü‚·‚ËB
-// ‚±‚Ì‚Ü‚Ü“®ì‚µ‚Ü‚·‚ªA‚à‚µˆÓ}‚µ‚È‚¢‚à‚Ì‚Å‚ ‚ê‚Îƒtƒ@ƒCƒ‹–¼‚ÆƒNƒ‰ƒX–¼‚ğ‡‚í‚¹‚é‚±‚Æ‚ğ‚¨Š©‚ß‚µ‚Ü‚·B
+// ãƒ•ã‚¡ã‚¤ãƒ«åã¯ PlayerController.cs ã§ã™ãŒã€ã‚¯ãƒ©ã‚¹åã¯ PlayerViewController ã«ãªã£ã¦ã„ã¾ã™ã­ã€‚
+// ã“ã®ã¾ã¾å‹•ä½œã—ã¾ã™ãŒã€ã‚‚ã—æ„å›³ã—ãªã„ã‚‚ã®ã§ã‚ã‚Œã°ãƒ•ã‚¡ã‚¤ãƒ«åã¨ã‚¯ãƒ©ã‚¹åã‚’åˆã‚ã›ã‚‹ã“ã¨ã‚’ãŠå‹§ã‚ã—ã¾ã™ã€‚
 public class PlayerController : MonoBehaviour
 {
+    public GameObject roto1;
+    public GameObject roto2;
+    public GameObject roto3;
+    public GameObject roto4;
+    public GameObject tanni1;
+    public GameObject tanni2;
+    public GameObject tanni3;
+    public GameObject tanni4;
+
+    // å®Ÿè¡Œä¸­ã®ã‚³ãƒ«ãƒ¼ãƒãƒ³ã‚’ç®¡ç†ã™ã‚‹ãŸã‚ã®å¤‰æ•°
+    private Coroutine showTanniCoroutine;
+
     void Start()
     {
-        // ƒQ[ƒ€ŠJn‚ÉƒvƒŒƒCƒ„[‚ğ‰ŠúˆÊ’u‚Ö
+        // ã‚²ãƒ¼ãƒ é–‹å§‹æ™‚ã«ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’åˆæœŸä½ç½®ã¸
         SetInitialPosition(true);
+        roto1.SetActive(true);
+        roto2.SetActive(false);
+        roto3.SetActive(false);
+        roto4.SetActive(false);
+
+        // â–¼â–¼â–¼ è¿½åŠ  â–¼â–¼â–¼
+        // æœ€åˆã¯ã™ã¹ã¦ã®tanniãƒ†ã‚­ã‚¹ãƒˆã‚’éè¡¨ç¤ºã«ã—ã¦ãŠã
+        tanni1.SetActive(false);
+        tanni2.SetActive(false);
+        tanni3.SetActive(false);
+        tanni4.SetActive(false);
+        // â–²â–²â–² è¿½åŠ  â–²â–²â–²
     }
 
     void Update()
@@ -16,19 +41,35 @@ public class PlayerController : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.W))
         {
-            moveDirection.x = 1; // X² ³•ûŒü
+            moveDirection.x = 1; // Xè»¸ æ­£æ–¹å‘
+            roto1.SetActive(false);
+            roto2.SetActive(false);
+            roto3.SetActive(false);
+            roto4.SetActive(true);
         }
         else if (Input.GetKeyDown(KeyCode.S))
         {
-            moveDirection.x = -1; // X² •‰•ûŒü
+            moveDirection.x = -1; // Xè»¸ è² æ–¹å‘
+            roto1.SetActive(false);
+            roto2.SetActive(false);
+            roto3.SetActive(true);
+            roto4.SetActive(false);
         }
         else if (Input.GetKeyDown(KeyCode.A))
         {
-            moveDirection.z = 1; // Z² ³•ûŒü
+            moveDirection.z = 1; // Zè»¸ æ­£æ–¹å‘
+            roto1.SetActive(true);
+            roto2.SetActive(false);
+            roto3.SetActive(false);
+            roto4.SetActive(false);
         }
         else if (Input.GetKeyDown(KeyCode.D))
         {
-            moveDirection.z = -1; // Z² •‰•ûŒü
+            moveDirection.z = -1; // Zè»¸ è² æ–¹å‘
+            roto1.SetActive(false);
+            roto2.SetActive(true);
+            roto3.SetActive(false);
+            roto4.SetActive(false);
         }
 
         if (moveDirection != Vector3.zero)
@@ -37,10 +78,37 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // TryMoveãƒ¡ã‚½ãƒƒãƒ‰ã‚’ä»¥ä¸‹ã®ã‚ˆã†ã«å¤‰æ›´
+
     void TryMove(Vector3 direction)
     {
         Vector3 targetPosition = transform.position + direction;
 
+        // --- æ•µã¨ã®æ¥è§¦åˆ¤å®šã‚’ã“ã“ã§è¡Œã† ---
+        Collider[] hitColliders = Physics.OverlapSphere(targetPosition, 0.4f);
+        foreach (var hitCollider in hitColliders)
+        {
+            if (hitCollider.CompareTag("Enemy"))
+            {
+                // æ•µã‚’ç™ºè¦‹ã—ãŸå ´åˆ
+                // 1. ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’æ•µã®ã„ãŸãƒã‚¹ã¸ç§»å‹•ã•ã›ã‚‹
+                transform.position = targetPosition;
+
+                // 2. GameManagerã«ãƒ•ãƒ©ã‚°ã‚’ç«‹ã¦ã•ã›ã€ä»–ã®æ•µã®å‹•ãã‚’å°ã˜ã‚‹
+                if (GameManager.instance != null)
+                {
+                    GameManager.instance.combatInitiatedThisFrame = true;
+                }
+
+                // 3. æˆ¦é—˜ã‚’é–‹å§‹ã™ã‚‹
+                GameManager.instance.PlayerCaughtByEnemy(hitCollider.gameObject);
+
+                // 4. ã“ã‚Œä»¥ä¸Šã“ã®ãƒ¡ã‚½ãƒƒãƒ‰ã®å‡¦ç†ã¯è¡Œã‚ãªã„
+                return;
+            }
+        }
+
+        // --- æ•µãŒã„ãªã„å ´åˆã€é€šå¸¸ã®ç§»å‹•å‡¦ç† ---
         int mapX = Mathf.RoundToInt(targetPosition.x + 7.5f);
         int mapZ = Mathf.RoundToInt(targetPosition.z + 7.5f);
 
@@ -51,35 +119,88 @@ public class PlayerController : MonoBehaviour
 
         int targetCellType = MapGenerator.map[mapZ, mapX];
 
-        if (targetCellType == 0) // 0‚Í“¹
+        if (targetCellType == 0 || targetCellType == 4) // é“ã¾ãŸã¯ä½•ã‚‚ãªã„æ•µã®å‡ºç¾ãƒã‚¤ãƒ³ãƒˆ
         {
             transform.position = targetPosition;
         }
-        // «««« ‚±‚±‚ğC³ ««««
-        else if (targetCellType == 2) // 2‚ÍŠK’i
+        else if (targetCellType == 2) // éšæ®µ
         {
-            // ƒ}ƒbƒvƒWƒFƒlƒŒ[ƒ^[‚Élevel2‚Ìƒ}ƒbƒv‚ğ¶¬‚·‚é‚æ‚¤‚Éw¦‚·‚é
-            MapGenerator.instance.ChangeMap(MapGenerator.level2); // © ‚±‚Ìs‚ğ’Ç‰Á
-
-            // ƒvƒŒƒCƒ„[‚ğV‚µ‚¢ƒ}ƒbƒv‚Ì‰ŠúˆÊ’u‚ÉˆÚ“®‚³‚¹‚é
+            MapGenerator.instance.ChangeMap(MapGenerator.level2);
             SetInitialPosition(false);
         }
-        // ªªªª ‚±‚±‚Ü‚ÅC³ ªªªª
+        else if (targetCellType == 3) // å®ç®±
+        {
+            transform.position = targetPosition;
+            MapGenerator.map[mapZ, mapX] = 0;
+            MapGenerator.instance.RemoveChestObjectsAt(mapX, mapZ);
+
+            GameObject tanniToShow = null;
+            if (direction.x > 0)
+            {
+                tanniToShow = tanni4;
+            }
+            else if (direction.x < 0)
+            {
+                tanniToShow = tanni3;
+            }
+            else if (direction.z > 0)
+            {
+                tanniToShow = tanni1;
+            }
+            else if (direction.z < 0)
+            {
+                tanniToShow = tanni2;
+            }
+
+            if (tanniToShow != null)
+            {
+                if (showTanniCoroutine != null)
+                {
+                    StopCoroutine(showTanniCoroutine);
+                }
+                showTanniCoroutine = StartCoroutine(ShowTanniAndHide(tanniToShow, 3f));
+            }
+        }
     }
 
-    // ƒvƒŒƒCƒ„[‚ğ‰ŠúˆÊ’u‚Éİ’è‚·‚éƒƒ\ƒbƒh
+    // â–¼â–¼â–¼ è¿½åŠ  â–¼â–¼â–¼
+    /// <summary>
+    /// æŒ‡å®šã•ã‚ŒãŸGameObjectã‚’ä¸€å®šæ™‚é–“è¡¨ç¤ºã—ãŸå¾Œã«éè¡¨ç¤ºã«ã™ã‚‹ã‚³ãƒ«ãƒ¼ãƒãƒ³
+    /// </summary>
+    /// <param name="tanniObject">è¡¨ç¤ºã™ã‚‹ãƒ†ã‚­ã‚¹ãƒˆã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆ</param>
+    /// <param name="duration">è¡¨ç¤ºã™ã‚‹æ™‚é–“ï¼ˆç§’ï¼‰</param>
+    private IEnumerator ShowTanniAndHide(GameObject tanniObject, float duration)
+    {
+        // å¿µã®ãŸã‚ã€ã™ã¹ã¦ã®ãƒ†ã‚­ã‚¹ãƒˆã‚’ä¸€æ—¦éè¡¨ç¤ºã«ã™ã‚‹
+        tanni1.SetActive(false);
+        tanni2.SetActive(false);
+        tanni3.SetActive(false);
+        tanni4.SetActive(false);
+
+        // å¯¾è±¡ã®ãƒ†ã‚­ã‚¹ãƒˆã‚’è¡¨ç¤ºã™ã‚‹
+        tanniObject.SetActive(true);
+
+        // æŒ‡å®šã•ã‚ŒãŸç§’æ•°ã ã‘å¾…æ©Ÿã™ã‚‹
+        yield return new WaitForSeconds(duration);
+
+        // å¯¾è±¡ã®ãƒ†ã‚­ã‚¹ãƒˆã‚’éè¡¨ç¤ºã«ã™ã‚‹
+        tanniObject.SetActive(false);
+    }
+    // â–²â–²â–² è¿½åŠ  â–²â–²â–²
+
+    // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’åˆæœŸä½ç½®ã«è¨­å®šã™ã‚‹ãƒ¡ã‚½ãƒƒãƒ‰
     void SetInitialPosition(bool isFirstTime)
     {
         Vector3 newPosition;
 
         if (isFirstTime)
         {
-            // Å‰‚Ìƒ}ƒbƒv(level1)‚ÌƒXƒ^[ƒgˆÊ’u
+            // æœ€åˆã®ãƒãƒƒãƒ—(level1)ã®ã‚¹ã‚¿ãƒ¼ãƒˆä½ç½®
             newPosition = new Vector3(6.5f, transform.position.y, -6.5f);
         }
         else
         {
-            // V‚µ‚¢ƒ}ƒbƒv(level2)‚ÌƒXƒ^[ƒgˆÊ’u
+            // æ–°ã—ã„ãƒãƒƒãƒ—(level2)ã®ã‚¹ã‚¿ãƒ¼ãƒˆä½ç½®
             newPosition = new Vector3(-6.5f, transform.position.y, -6.5f);
         }
 
@@ -94,6 +215,16 @@ public class PlayerController : MonoBehaviour
         if (cc != null)
         {
             cc.enabled = true;
+        }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        // æ¥è§¦ã—ãŸç›¸æ‰‹ã®ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆãŒ "Enemy" ã‚¿ã‚°ã‚’æŒã£ã¦ã„ã‚‹ã‹ç¢ºèª
+        if (other.CompareTag("Enemy"))
+        {
+            // GameManagerã«ã‚¤ãƒ™ãƒ³ãƒˆç™ºç”Ÿã‚’é€šçŸ¥ã—ã€æ¥è§¦ã—ãŸæ•µã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’æ¸¡ã™
+            GameManager.instance.PlayerCaughtByEnemy(other.gameObject);
         }
     }
 }

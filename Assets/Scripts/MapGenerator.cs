@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class MapGenerator : MonoBehaviour
@@ -9,6 +10,12 @@ public class MapGenerator : MonoBehaviour
     public GameObject wallPrefab;
     public GameObject wallPrefabView;
     public GameObject StairsPrefab;
+    public GameObject ChestPrefab;
+    public GameObject EnemyPrefab;
+
+    // 生成した宝箱オブジェクトを座標と紐づけて管理するための辞書
+    // 1つの座標に複数のオブジェクト（例：高さの違う宝箱）がある可能性を考慮し、Listで管理します
+    private Dictionary<Vector2Int, List<GameObject>> chestObjectLists = new Dictionary<Vector2Int, List<GameObject>>();
 
     // 現在のマップデータを保持する静的配列
     public static int[,] map = new int[16, 16];
@@ -21,16 +28,16 @@ public class MapGenerator : MonoBehaviour
         {1,0,1,1,1,1,0,1,0,1,1,1,1,1,0,1},
         {1,0,1,0,0,0,0,0,0,1,0,0,0,0,0,1},
         {1,0,1,0,1,1,1,1,1,1,0,1,1,1,0,1},
-        {1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1},
-        {1,1,1,0,1,0,1,1,1,1,1,1,0,1,0,1},
+        {1,0,0,0,1,0,0,0,0,0,3,1,0,0,4,1},
+        {1,1,1,0,1,4,1,1,1,1,1,1,0,1,0,1},
         {1,0,0,0,1,0,0,0,0,1,0,0,0,1,0,1},
         {1,0,1,1,1,1,1,1,0,1,0,1,1,1,0,1},
         {1,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1},
         {1,0,1,1,1,0,1,1,1,1,0,1,0,1,1,1},
         {1,0,1,0,0,0,0,0,0,1,0,1,0,1,0,1},
         {1,0,1,1,0,1,1,1,0,0,0,0,1,1,0,1},
-        {1,0,0,0,0,1,0,0,0,0,2,0,0,0,0,1}, // level1のゴール(2)
-        {1,1,1,1,0,1,0,1,1,0,0,0,1,1,0,1},
+        {1,4,0,0,0,1,0,0,0,0,2,0,0,0,0,1}, // level1のゴール(2)
+        {1,1,1,1,0,1,3,1,1,0,0,0,1,1,3,1},
         {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
     };
 
@@ -42,7 +49,7 @@ public class MapGenerator : MonoBehaviour
         {1,0,1,1,1,0,1,0,0,1,0,0,0,1,0,1},
         {1,0,0,0,0,0,1,0,1,1,1,1,0,1,0,1},
         {1,1,1,1,1,1,1,0,0,0,0,1,0,1,0,1},
-        {1,0,0,0,0,0,0,0,1,1,0,1,0,1,0,1},
+        {1,0,0,0,0,0,3,0,1,1,0,1,3,1,0,1},
         {1,0,1,1,1,1,1,1,1,1,0,1,1,1,0,1},
         {1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1},
         {1,0,1,0,1,1,1,1,1,1,1,1,0,1,1,1},
@@ -50,7 +57,7 @@ public class MapGenerator : MonoBehaviour
         {1,0,0,0,1,0,1,1,0,1,0,1,0,1,0,1},
         {1,1,1,0,1,0,1,0,0,1,0,1,0,0,0,1},
         {1,0,0,0,1,0,1,0,1,1,0,1,0,2,0,1},
-        {1,0,1,1,1,0,0,0,1,0,0,0,0,0,0,1},
+        {1,3,1,1,1,0,0,0,1,0,0,0,0,0,0,1},
         {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
     };
 
@@ -81,6 +88,8 @@ public class MapGenerator : MonoBehaviour
         {
             Destroy(mapHolder);
         }
+        // 新しいマップを生成する前に、宝箱の管理リストをクリアする
+        chestObjectLists.Clear();
         map = newMap;
         GenerateMap();
     }
@@ -100,6 +109,29 @@ public class MapGenerator : MonoBehaviour
                     float posZ = z - 7.5f;
                     Vector3 wallPosition = new Vector3(posX, 1f, posZ);
                     Instantiate(wallPrefab, wallPosition, Quaternion.identity, mapHolder.transform);
+                }
+                else if (map[z, x] == 3)
+                {
+                    Vector2Int key = new Vector2Int(x, z);
+                    if (!chestObjectLists.ContainsKey(key))
+                    {
+                        chestObjectLists[key] = new List<GameObject>();
+                    }
+
+                    float posX = x - 7.5f;
+                    float posZ = z - 7.5f;
+                    Vector3 chestPosition = new Vector3(posX, 4.5f, posZ);
+                    GameObject chestInstance = Instantiate(ChestPrefab, chestPosition, Quaternion.identity, mapHolder.transform);
+
+                    // 生成した宝箱オブジェクトを辞書に追加
+                    chestObjectLists[key].Add(chestInstance);
+                }
+                else if (map[z, x] == 4)
+                {
+                    float posX = x - 7.5f;
+                    float posZ = z - 7.5f;
+                    Vector3 enemyPosition = new Vector3(posX, 0.5f, posZ);
+                    Instantiate(EnemyPrefab, enemyPosition, Quaternion.identity, mapHolder.transform);
                 }
             }
         }
@@ -150,6 +182,22 @@ public class MapGenerator : MonoBehaviour
                     Vector3 wallPosition = new Vector3(posX, 6f, posZ);
                     Instantiate(wallPrefab, wallPosition, Quaternion.identity, mapHolder.transform);
                 }
+                else if (map[z, x] == 3)
+                {
+                    Vector2Int key = new Vector2Int(x, z);
+                    if (!chestObjectLists.ContainsKey(key))
+                    {
+                        chestObjectLists[key] = new List<GameObject>();
+                    }
+
+                    float posX = x - 7.5f;
+                    float posZ = z - 7.5f;
+                    Vector3 chestPosition = new Vector3(posX, 9.5f, posZ);
+                    GameObject chestInstance = Instantiate(ChestPrefab, chestPosition, Quaternion.identity, mapHolder.transform);
+
+                    // こちらの宝箱も辞書に追加
+                    chestObjectLists[key].Add(chestInstance);
+                }
             }
         }
 
@@ -171,6 +219,24 @@ public class MapGenerator : MonoBehaviour
                     Instantiate(wallPrefabView, wallPosition, Quaternion.identity, mapHolder.transform);
                 }
             }
+        }
+    }
+
+    public void RemoveChestObjectsAt(int x, int z)
+    {
+        Vector2Int key = new Vector2Int(x, z);
+        if (chestObjectLists.ContainsKey(key))
+        {
+            // その座標にある宝箱オブジェクトをすべて破壊する
+            foreach (GameObject chest in chestObjectLists[key])
+            {
+                if (chest != null)
+                {
+                    Destroy(chest);
+                }
+            }
+            // 辞書からその座標の情報を削除する
+            chestObjectLists.Remove(key);
         }
     }
 }
