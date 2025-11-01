@@ -18,6 +18,8 @@ public class GameManager : MonoBehaviour
     public List<Vector3> enemyPositions = new List<Vector3>();
     public int[,] mapData;
 
+    public List<int> validCombatDirections = new List<int>();
+
     // プレイヤーが戦闘を開始したことを示すフレーム単位のフラグ
     public bool combatInitiatedThisFrame = false;
 
@@ -51,12 +53,13 @@ public class GameManager : MonoBehaviour
         combatInitiatedThisFrame = false;
     }
 
-    public void PlayerCaughtByEnemy(GameObject enemyInCombat)
+    public void PlayerCaughtByEnemy(GameObject enemyInCombat, List<int> validDirections)
     {
         Debug.Log("敵に捕まった！戦闘シーンへ移行します。");
 
         // 1. 現在のゲーム状態を保存する
-        SaveGameState(enemyInCombat);
+        // ▼▼▼ 引数を SaveGameState にも渡す ▼▼▼
+        SaveGameState(enemyInCombat, validDirections);
 
         // 2. 戦闘シーンをロードする
         SceneManager.LoadScene(battleSceneName);
@@ -75,7 +78,7 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// 現在のゲームの状態を保存する
     /// </summary>
-    private void SaveGameState(GameObject enemyInCombat)
+    private void SaveGameState(GameObject enemyInCombat, List<int> validDirections)
     {
         // プレイヤーの位置と向きを保存
         GameObject player = GameObject.FindGameObjectWithTag("Player");
@@ -98,6 +101,15 @@ public class GameManager : MonoBehaviour
 
         // 現在のマップデータ（宝箱の状態など）を保存
         mapData = (int[,])MapGenerator.map.Clone(); // 配列を値渡しでコピー
+
+        // ▼▼▼ 追加 ▼▼▼
+        // 戦闘時の有効な方向を保存
+        validCombatDirections.Clear();
+        if (validDirections != null)
+        {
+            validCombatDirections.AddRange(validDirections);
+        }
+        // ▲▲▲ 追加 ▲▲▲
     }
 
     /// <summary>
