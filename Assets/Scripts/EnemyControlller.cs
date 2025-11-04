@@ -1,86 +1,64 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using System.Collections.Generic;
-using System.Linq; // List‚ª‹ó‚Å‚È‚¢‚±‚Æ‚ğŠm”F‚·‚é‚½‚ß‚Ég—p
+using System.Linq; // MoveToRandomValidSpot ã§ .Any() ã‚’ä½¿ã†ãŸã‚ã«å¿…è¦
 
+// æ•µã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ¼ã®ã‚¿ãƒ¼ãƒ³åˆ¶ã®è¡Œå‹•ï¼ˆè¿½è·¡ã€ãƒ©ãƒ³ãƒ€ãƒ ç§»å‹•ãªã©ï¼‰ã‚’åˆ¶å¾¡ã—ã¾ã™ã€‚
 public class EnemyController : MonoBehaviour
 {
-    // ƒvƒŒƒCƒ„[ƒIƒuƒWƒFƒNƒg‚ÌQÆ‚ğ•Û‚·‚é•Ï”
-    private Transform playerTransform;
-    private CharacterController cc; // “G©g‚ÌCharacterController
+    // å‚ç…§
+    private Transform playerTransform; // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®Transform
+    private CharacterController cc; // æ•µè‡ªèº«ã®CharacterController
 
     void Start()
     {
-        // ƒvƒŒƒCƒ„[‚ÌTransform‚ğæ“¾‚µ‚Ä•Û‚·‚é
-        // ƒvƒŒƒCƒ„[‚Í "Player" ƒ^ƒO‚ª‚Â‚¢‚Ä‚¢‚é‘O’ñ
+        // "Player" ã‚¿ã‚°ã‚’æŒã¤ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’æ¤œç´¢ã—ã€ãã®Transformã‚’ã‚­ãƒ£ãƒƒã‚·ãƒ¥ã—ã¾ã™ã€‚
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
             playerTransform = player.transform;
         }
 
-        // ©g‚ÌCharacterController‚ğæ“¾
+        // è‡ªèº«ã®CharacterControllerã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆã‚’å–å¾—ã—ã¾ã™ã€‚
         cc = GetComponent<CharacterController>();
     }
 
-    // ¥¥¥ Update() ƒƒ\ƒbƒh‚ğíœA‚Ü‚½‚ÍƒRƒƒ“ƒgƒAƒEƒg‚µ‚Ü‚· ¥¥¥
-    /*
-    void Update()
-    {
-        // ƒvƒŒƒCƒ„[‚ªŠù‚Éí“¬‚ğŠJn‚µ‚Ä‚¢‚éƒtƒŒ[ƒ€‚Å‚ÍA“G‚Ís“®‚µ‚È‚¢
-        if (GameManager.instance != null && GameManager.instance.combatInitiatedThisFrame)
-        {
-            return;
-        }
-
-        // W, A, S, D ‚¢‚¸‚ê‚©‚ÌƒL[‚ª‰Ÿ‚³‚ê‚½uŠÔ‚ğŒŸ’m
-        if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.D))
-        {
-            DecideActionWithProbability();
-        }
-    }
-    */
-    // £££ ‚±‚±‚Ü‚Åíœ £££
-
-
-    // ¥¥¥ ‚±‚Ìƒƒ\ƒbƒh‚ğV‚µ‚­’Ç‰Á‚µ‚Ü‚· ¥¥¥
     /// <summary>
-    /// ƒvƒŒƒCƒ„[‚Ìs“®Œã‚ÉŒÄ‚Ño‚³‚êA“G‚Ìs“®i’ÇÕ‚Ü‚½‚Íƒ‰ƒ“ƒ_ƒ€ˆÚ“®j‚ğÀs‚·‚é
-    /// </summary>
+    // æ•µã®ã‚¿ãƒ¼ãƒ³ãŒæ¥ãŸã¨ãã«å‘¼ã³å‡ºã•ã‚Œã€è¡Œå‹•ã‚’å®Ÿè¡Œã—ã¾ã™ã€‚
+    // å¼•æ•°: playerPosBeforeMove â€“ ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒã“ã®ã‚¿ãƒ¼ãƒ³ã«ç§»å‹•ã™ã‚‹ã€Œå‰ã€ã®ä½ç½®
     public void ExecuteTurn(Vector3 playerPosBeforeMove)
     {
-        // (í“¬ŠJnƒtƒ‰ƒO‚Ìƒ`ƒFƒbƒN‚Í•ÏX‚È‚µ)
+        // GameManagerã«ã‚ˆã£ã¦ã“ã®ãƒ•ãƒ¬ãƒ¼ãƒ ã§æˆ¦é—˜ãŒé–‹å§‹ã•ã‚ŒãŸå ´åˆã€æ•µã¯è¡Œå‹•ã—ã¾ã›ã‚“ã€‚
+        // (ä¾‹: ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒå…ˆã«æ”»æ’ƒã—ãŸå ´åˆãªã©)
         if (GameManager.instance != null && GameManager.instance.combatInitiatedThisFrame)
         {
             return;
         }
 
-        // ƒvƒŒƒCƒ„[‚ªí“¬‚ğŠJn‚µ‚È‚©‚Á‚½‚Ì‚ÅA“G‚Ís“®‚ğŒˆ’è‚·‚é
-        // ¥¥¥ C³: ˆø”‚ğ DecideActionWithProbability ‚Ö“n‚· ¥¥¥
+        // è¡Œå‹•ï¼ˆè¿½è·¡ã€ãƒ©ãƒ³ãƒ€ãƒ ç§»å‹•ã€ã¾ãŸã¯ç•™ã¾ã‚‹ï¼‰ã‚’æ±ºå®šã—ã¾ã™ã€‚
+        // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ç§»å‹•å‰ã®ä½ç½®ã‚’æ¸¡ã—ã¦ã€è¿½è·¡åˆ¤å®šã«ä½¿ç”¨ã—ã¾ã™ã€‚
         DecideActionWithProbability(playerPosBeforeMove);
     }
-    // £££ ‚±‚±‚Ü‚Å’Ç‰Á £££
 
-
-    /// <summary>
-    /// Šm—¦‚ÉŠî‚Ã‚¢‚Äu—¯‚Ü‚év‚©uˆÚ“®‚·‚év‚©‚ğŒˆ’è‚·‚é
-    /// </summary>
+    // ç¢ºç‡ã«åŸºã¥ã„ã¦è¡Œå‹•ï¼ˆè¿½è·¡ > ç•™ã¾ã‚‹ > ãƒ©ãƒ³ãƒ€ãƒ ç§»å‹•ï¼‰ã‚’æ±ºå®šã—ã¾ã™ã€‚
     void DecideActionWithProbability(Vector3 playerPosForChaseCheck)
     {
-        // 0. ƒvƒŒƒCƒ„[‚Ì’ÇÕ‚ğ‚İ‚é
-        // ¥¥¥ C³: ˆø”‚ğ TryChasePlayer ‚Ö“n‚· ¥¥¥
+        // 1. ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®è¿½è·¡ã‚’è©¦ã¿ã¾ã™ã€‚
+        // è¿½è·¡ï¼ˆãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒã„ãŸæ–¹å‘ã«1ãƒã‚¹é€²ã‚€ï¼‰ã«æˆåŠŸã—ãŸå ´åˆã€ã“ã®ã‚¿ãƒ¼ãƒ³ã®è¡Œå‹•ã¯çµ‚äº†ã§ã™ã€‚
         if (TryChasePlayer(playerPosForChaseCheck))
         {
-            // ’ÇÕ‚É¬Œ÷‚µ‚½iƒvƒŒƒCƒ„[‚Ì•ûŒü‚ÉˆÚ“®‚µ‚½jê‡‚ÍA‚±‚±‚Åˆ—I—¹
             return;
         }
 
-        // (ƒ‰ƒ“ƒ_ƒ€ˆÚ“®‚ÌƒƒWƒbƒN‚Í•ÏX‚È‚µ)
-        // ...
-        float randomValue = Random.value;
+        // 2. è¿½è·¡ã—ãªã„å ´åˆã€ç¢ºç‡ã§è¡Œå‹•ã‚’æ±ºå®šã—ã¾ã™ã€‚
+        float randomValue = Random.value; // 0.0f ã‹ã‚‰ 1.0f ã®é–“ã®ãƒ©ãƒ³ãƒ€ãƒ ãªå€¤
+
+        // 10%ã®ç¢ºç‡ã§ã€Œç•™ã¾ã‚‹ã€ï¼ˆä½•ã‚‚ã—ãªã„ï¼‰
         if (randomValue < 0.1f)
         {
+            // è¡Œå‹•çµ‚äº†
             return;
         }
+        // 3. æ®‹ã‚Šã®ç¢ºç‡ã§ã€Œãƒ©ãƒ³ãƒ€ãƒ ç§»å‹•ã€ã‚’å®Ÿè¡Œã—ã¾ã™ã€‚
         else
         {
             MoveToRandomValidSpot();
@@ -88,67 +66,69 @@ public class EnemyController : MonoBehaviour
     }
 
 
-    /// <summary>
-    /// ƒvƒŒƒCƒ„[‚ª‘O•û‚É‚¢‚é‚©Šm”F‚µA‚¢‚éê‡‚Í‚»‚Ì•ûŒü‚ÖˆÚ“®‚ğ‚İ‚é
-    /// </summary>
-    /// <returns>’ÇÕˆÚ“®‚É¬Œ÷‚µ‚½ê‡‚ÍtrueA‚»‚¤‚Å‚È‚¢ê‡‚Ífalse</returns>
+    // æ•µãŒå‘ã„ã¦ã„ã‚‹æ–¹å‘ã«ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒï¼ˆç§»å‹•å‰ã«ï¼‰ã„ãŸã‹ã‚’ç¢ºèªã—ã€
+    // ã„ãŸå ´åˆã¯ãã®æ–¹å‘ã¸1ãƒã‚¹ç§»å‹•ã‚’è©¦ã¿ã¾ã™ã€‚
+    // æˆ»ã‚Šå€¤: è¿½è·¡ç§»å‹•ã«æˆåŠŸã—ãŸå ´åˆã¯true
     bool TryChasePlayer(Vector3 playerPosForChaseCheck)
     {
-        /* (playerTransform ‚Ìƒ`ƒFƒbƒN‚Í•s—v‚É‚È‚è‚Ü‚·)
-        if (playerTransform == null)
-        {
-            return false;
-        }
-        */
-
-        // 1. “G‚Ìu‘O•ûvƒxƒNƒgƒ‹‚ğƒIƒCƒ‰[Šp(Y)‚ÉŠî‚Ã‚¢‚ÄŒˆ’è‚·‚é (•ÏX‚È‚µ)
+        // 1. æ•µã®ã€Œå‰æ–¹ã€ãŒã©ã¡ã‚‰ã®è»¸ã‚’å‘ã„ã¦ã„ã‚‹ã‹ã‚’ã€Yè»¸ã®å›è»¢è§’åº¦ã‹ã‚‰æ­£ç¢ºã«åˆ¤å®šã—ã¾ã™ã€‚
         float yAngle = transform.rotation.eulerAngles.y;
         Vector3 forwardDir = Vector3.zero;
-        if (Mathf.Abs(yAngle - 0) < 1.0f || Mathf.Abs(yAngle - 360) < 1.0f) { forwardDir = new Vector3(0, 0, 1); }
-        else if (Mathf.Abs(yAngle - 90) < 1.0f) { forwardDir = new Vector3(1, 0, 0); }
-        else if (Mathf.Abs(yAngle - 180) < 1.0f) { forwardDir = new Vector3(0, 0, -1); }
-        else if (Mathf.Abs(yAngle - 270) < 1.0f || Mathf.Abs(yAngle - (-90)) < 1.0f) { forwardDir = new Vector3(-1, 0, 0); }
-        else { forwardDir = GetRoundedDirection(transform.forward); }
 
-        // ¥¥¥ C³‚±‚±‚©‚ç ¥¥¥
-        // 2. ƒvƒŒƒCƒ„[‚Ì‘Š‘ÎˆÊ’u‚ğuˆÚ“®‘O‚ÌˆÊ’uv‚©‚çæ“¾
-        // (playerTransform.position ‚Ì‘ã‚í‚è‚Éˆø” playerPosForChaseCheck ‚ğg‚¤)
+        // è§’åº¦ï¼ˆã‚ªã‚¤ãƒ©ãƒ¼è§’ï¼‰ã«åŸºã¥ã„ã¦ã€(0, 0, 1) ã‚„ (1, 0, 0) ã¨ã„ã£ãŸæ­£ç¢ºãªæ–¹å‘ãƒ™ã‚¯ãƒˆãƒ«ã‚’æ±‚ã‚ã¾ã™ã€‚
+        if (Mathf.Abs(yAngle - 0) < 1.0f || Mathf.Abs(yAngle - 360) < 1.0f) { forwardDir = new Vector3(0, 0, 1); } // Z+ (åŒ—)
+        else if (Mathf.Abs(yAngle - 90) < 1.0f) { forwardDir = new Vector3(1, 0, 0); } // X+ (æ±)
+        else if (Mathf.Abs(yAngle - 180) < 1.0f) { forwardDir = new Vector3(0, 0, -1); } // Z- (å—)
+        else if (Mathf.Abs(yAngle - 270) < 1.0f || Mathf.Abs(yAngle - (-90)) < 1.0f) { forwardDir = new Vector3(-1, 0, 0); } // X- (è¥¿)
+        else
+        {
+            // è§’åº¦ãŒã´ã£ãŸã‚Šã§ãªã„å ´åˆã®ä¿é™ºã¨ã—ã¦ã€æœ€ã‚‚è¿‘ã„è»¸æ–¹å‘ã‚’å–å¾—ã—ã¾ã™ã€‚
+            forwardDir = GetRoundedDirection(transform.forward);
+        }
+
+        // 2. ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ç›¸å¯¾ä½ç½®ã‚’ã€å¼•æ•°ã§å—ã‘å–ã£ãŸã€Œç§»å‹•å‰ã®ä½ç½®ã€ã‹ã‚‰ç®—å‡ºã—ã¾ã™ã€‚
         Vector3 playerRelativePos = playerPosForChaseCheck - transform.position;
-        // £££ C³‚±‚±‚Ü‚Å £££
 
-        // 3. ƒvƒŒƒCƒ„[‚ªu‘O•ûv‚Ìƒ}ƒX‚É‚¢‚é‚©ƒ`ƒFƒbƒN (•ÏX‚È‚µ)
+        // 3. ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒæ•µã®ã€Œå‰æ–¹ã€ãƒã‚¹ã«ï¼ˆç§»å‹•å‰ã«ï¼‰ã„ãŸã‹ãƒã‚§ãƒƒã‚¯ã—ã¾ã™ã€‚
         if (IsPlayerInDirection(playerRelativePos, forwardDir))
         {
-            // (ˆÚ“®æ‚Ìƒ`ƒFƒbƒNƒƒWƒbƒN‚Í•ÏX‚È‚µ)
-            // ...
+            // 4. ç§»å‹•å…ˆï¼ˆæ•µã®å‰æ–¹1ãƒã‚¹ï¼‰ãŒç§»å‹•å¯èƒ½ã‹ãƒã‚§ãƒƒã‚¯ã—ã¾ã™ã€‚
             Vector3 targetPosition = transform.position + forwardDir;
+
+            // ãƒãƒƒãƒ—åº§æ¨™ã«å¤‰æ›ã—ã¦ç¯„å›²ãƒã‚§ãƒƒã‚¯ (ãƒãƒƒãƒ—ã‚µã‚¤ã‚ºã¯16x16ã€ã‚ªãƒ•ã‚»ãƒƒãƒˆ7.5fã¨ä»®å®š)
             int mapX = Mathf.RoundToInt(targetPosition.x + 7.5f);
             int mapZ = Mathf.RoundToInt(targetPosition.z + 7.5f);
-            if (mapX < 0 || mapX >= 16 || mapZ < 0 || mapZ >= 16) { return false; }
+            if (mapX < 0 || mapX >= 16 || mapZ < 0 || mapZ >= 16) { return false; } // ãƒãƒƒãƒ—ç¯„å›²å¤–
+
+            // ãƒãƒƒãƒ—ãƒãƒƒãƒ—ã®ç¨®é¡ã‚’ãƒã‚§ãƒƒã‚¯ (1:å£, 2:éšœå®³ç‰© ã¨ä»®å®š)
             int targetCellType = MapGenerator.map[mapZ, mapX];
-            if (targetCellType == 1 || targetCellType == 2) { return false; }
+            if (targetCellType == 1 || targetCellType == 2) { return false; } // ç§»å‹•ä¸å¯ãƒã‚¹
+
+            // ä»–ã®æ•µãŒã„ãªã„ã‹ãƒã‚§ãƒƒã‚¯
             if (IsEnemyAt(targetPosition)) { return false; }
 
-            // 5. ˆÚ“®‰Â”\I (•ÏX‚È‚µ)
+            // 5. ç§»å‹•å®Ÿè¡Œ
+            // CharacterControllerã¯ç‰©ç†æŒ™å‹•ï¼ˆè¡çªï¼‰ã‚’åˆ¶å¾¡ã™ã‚‹ãŸã‚ã€
+            // transform.positionã§ç›´æ¥åº§æ¨™ã‚’ä¸Šæ›¸ãã™ã‚‹å ´åˆã¯ä¸€æ™‚çš„ã«ç„¡åŠ¹åŒ–ã™ã‚‹å¿…è¦ãŒã‚ã‚Šã¾ã™ã€‚
             if (cc != null) cc.enabled = false;
             transform.position = targetPosition;
             if (cc != null) cc.enabled = true;
-            Debug.Log("’Ç]‚µ‚Ü‚·B");
 
-            return true; // ’ÇÕ¬Œ÷
+            Debug.Log("ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’è¿½å¾“ã—ã¾ã™ã€‚");
+            return true; // è¿½è·¡æˆåŠŸ
         }
 
-        return false; // ƒvƒŒƒCƒ„[‚ª‘O•û‚É‚¢‚È‚©‚Á‚½
+        return false; // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒå‰æ–¹ã«ã„ãªã‹ã£ãŸ
     }
 
-    /// <summary>
-    /// ƒvƒŒƒCƒ„[‚ªw’è‚µ‚½•ûŒü‚Ì—×Úƒ}ƒX‚É‚¢‚é‚©ƒ`ƒFƒbƒN
-    /// (Y²‚Ì‚‚³‚ğ–³‹‚µ‚Ä”»’è‚·‚é‚æ‚¤‚ÉC³)
-    /// </summary>
+    // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ç›¸å¯¾ä½ç½®(playerRelativePos)ãŒã€æŒ‡å®šã—ãŸæ–¹å‘(direction)ã¨
+    // (Yè»¸ã‚’ç„¡è¦–ã—ã¦)ä¸€è‡´ã™ã‚‹ã‹ã©ã†ã‹ã‚’åˆ¤å®šã—ã¾ã™ã€‚
     bool IsPlayerInDirection(Vector3 playerRelativePos, Vector3 direction)
     {
-        // (*** ‚±‚ÌŠÖ”‚Ì’†g‚Í•ÏX‚ ‚è‚Ü‚¹‚ñ ***)
+        // é«˜ä½å·®ã‚’ç„¡è¦–ã™ã‚‹ãŸã‚ã€XZå¹³é¢ä¸Šã®ãƒ™ã‚¯ãƒˆãƒ«ã§æ¯”è¼ƒã—ã¾ã™ã€‚
         Vector3 relativePosXZ = new Vector3(playerRelativePos.x, 0, playerRelativePos.z);
+
+        // 2ã¤ã®ãƒ™ã‚¯ãƒˆãƒ«ãŒã»ã¼åŒã˜ï¼ˆè·é›¢ãŒ0.1fæœªæº€ï¼‰ã§ã‚ã‚Œã°ã€åŒã˜æ–¹å‘ã¨ã¿ãªã—ã¾ã™ã€‚
         if (Vector3.Distance(relativePosXZ, direction) < 0.1f)
         {
             return true;
@@ -156,17 +136,16 @@ public class EnemyController : MonoBehaviour
         return false;
     }
 
-    /// <summary>
-    /// transform.forward‚È‚Ç‚©‚çA(1,0,0) ‚â (0,0,-1) ‚Ì‚æ‚¤‚È
-    /// ²‚É‰ˆ‚Á‚½‚«‚ê‚¢‚ÈƒxƒNƒgƒ‹‚ğæ“¾‚·‚é (—\”õ‚Æ‚µ‚Äc‚µ‚Ü‚·)
-    /// </summary>
+    // transform.forwardã®ã‚ˆã†ãªé€£ç¶šçš„ãªãƒ™ã‚¯ãƒˆãƒ«ã‚’ã€(1,0,0)ã‚„(0,0,-1)ã®ã‚ˆã†ãª
+    // 4æ–¹å‘ã®è»¸ã«æ²¿ã£ãŸãƒ™ã‚¯ãƒˆãƒ«ã«ä¸¸ã‚ã¾ã™ï¼ˆæ­£è¦åŒ–ã—ã¾ã™ï¼‰ã€‚
     Vector3 GetRoundedDirection(Vector3 direction)
     {
-        // (*** ‚±‚ÌŠÖ”‚Ì’†g‚Í•ÏX‚ ‚è‚Ü‚¹‚ñ ***)
+        // Xæˆåˆ†ã®çµ¶å¯¾å€¤ãŒZæˆåˆ†ã®çµ¶å¯¾å€¤ã‚ˆã‚Šå¤§ãã„å ´åˆ (æ±è¥¿æ–¹å‘)
         if (Mathf.Abs(direction.x) > Mathf.Abs(direction.z))
         {
             return new Vector3(Mathf.Sign(direction.x), 0, 0);
         }
+        // Zæˆåˆ†ã®çµ¶å¯¾å€¤ãŒXæˆåˆ†ã®çµ¶å¯¾å€¤ã‚ˆã‚Šå¤§ãã„å ´åˆ (å—åŒ—æ–¹å‘)
         else
         {
             return new Vector3(0, 0, Mathf.Sign(direction.z));
@@ -174,41 +153,41 @@ public class EnemyController : MonoBehaviour
     }
 
 
-    /// <summary>
-    /// ˆÚ“®‰Â”\‚Èƒ}ƒX‚Ì’†‚©‚çƒ‰ƒ“ƒ_ƒ€‚É‚P‚Â‚ğ‘I‚ñ‚ÅˆÚ“®‚µA‚»‚Ì•ûŒü‚ğŒü‚­
-    /// (‚±‚ÌŠÖ”‚ÍuˆÚ“®‚·‚év‚ÆŒˆ‚Ü‚Á‚½Œã‚ÉŒÄ‚Î‚ê‚é)
-    /// </summary>
+    // ç§»å‹•å¯èƒ½ãªéš£æ¥ãƒã‚¹ï¼ˆå‰å¾Œå·¦å³ï¼‰ã‹ã‚‰ãƒ©ãƒ³ãƒ€ãƒ ã«1ãƒã‚¹ã‚’é¸ã‚“ã§ç§»å‹•ã—ã€ãã®æ–¹å‘ã‚’å‘ãã¾ã™ã€‚
     void MoveToRandomValidSpot()
     {
-        // (*** CharacterController‚Ì—LŒø/–³Œø‰»ˆÈŠOA’†g‚Í•ÏX‚ ‚è‚Ü‚¹‚ñ ***)
+        // 1. ç§»å‹•å¯èƒ½ãªè¡Œãå…ˆãƒªã‚¹ãƒˆã‚’å–å¾—ã—ã¾ã™ã€‚
         List<Vector3> possibleMoveDestinations = GetPossibleMoveDestinations();
 
+        // 2. ç§»å‹•å…ˆãŒ1ã¤ã§ã‚‚ã‚ã‚‹ã‹ç¢ºèªã—ã¾ã™ã€‚ (.Any() ã¯ Linq ã®æ©Ÿèƒ½ã§ã™)
         if (possibleMoveDestinations.Any())
         {
+            // 3. ç§»å‹•å…ˆãƒªã‚¹ãƒˆã‹ã‚‰ãƒ©ãƒ³ãƒ€ãƒ ã«1ã¤ã‚’é¸ã³ã¾ã™ã€‚
             int randomIndex = Random.Range(0, possibleMoveDestinations.Count);
             Vector3 chosenDestination = possibleMoveDestinations[randomIndex];
             Vector3 moveDirection = chosenDestination - transform.position;
 
-            if (moveDirection != Vector3.zero)
+            // 4. ç§»å‹•ã™ã‚‹æ–¹å‘ã‚’å‘ãã¾ã™ã€‚
+            if (moveDirection != Vector3.zero) // å¿µã®ãŸã‚ã€ç§»å‹•æ–¹å‘ãŒã‚¼ãƒ­ã§ãªã„ã“ã¨ã‚’ç¢ºèª
             {
                 Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
                 transform.rotation = targetRotation;
             }
 
+            // 5. åº§æ¨™ã‚’ç›´æ¥æŒ‡å®šã—ã¦ç§»å‹•ã—ã¾ã™ (CharacterControllerã‚’ä¸€æ™‚çš„ã«ç„¡åŠ¹åŒ–)ã€‚
             if (cc != null) cc.enabled = false;
             transform.position = chosenDestination;
             if (cc != null) cc.enabled = true;
         }
+        // ç§»å‹•å…ˆãŒãªã„å ´åˆã¯ä½•ã‚‚ã—ã¾ã›ã‚“ï¼ˆãã®å ´ã«ç•™ã¾ã‚Šã¾ã™ï¼‰ã€‚
     }
 
-    /// <summary>
-    /// Œ»İ’n‚©‚çˆÚ“®‰Â”\‚Èus‚«æviŒ»İ’n‚ÍŠÜ‚Ü‚È‚¢j‚ğƒŠƒXƒg‚Å•Ô‚·
-    /// </summary>
-    /// <returns>ˆÚ“®‰Â”\‚ÈÀ•W(Vector3)‚ÌƒŠƒXƒg</returns>
+    // ç¾åœ¨åœ°ã‹ã‚‰ç§»å‹•å¯èƒ½ãªã€Œéš£æ¥ãƒã‚¹ï¼ˆ4æ–¹å‘ï¼‰ã€ã‚’ãƒªã‚¹ãƒˆã§è¿”ã—ã¾ã™ã€‚
+    // (å£ã€éšœå®³ç‰©ã€ä»–ã®æ•µãŒã„ã‚‹ãƒã‚¹ã¯é™¤å¤–ã—ã¾ã™)
     List<Vector3> GetPossibleMoveDestinations()
     {
-        // (*** ‚±‚ÌŠÖ”‚Ì’†g‚Í•ÏX‚ ‚è‚Ü‚¹‚ñ ***)
         List<Vector3> destinations = new List<Vector3>();
+        // ãƒã‚§ãƒƒã‚¯ã™ã‚‹4æ–¹å‘ã®ãƒ™ã‚¯ãƒˆãƒ«
         Vector3[] directions = {
             new Vector3(1, 0, 0), new Vector3(-1, 0, 0),
             new Vector3(0, 0, 1), new Vector3(0, 0, -1)
@@ -217,31 +196,40 @@ public class EnemyController : MonoBehaviour
         foreach (var dir in directions)
         {
             Vector3 targetPosition = transform.position + dir;
+
+            // ãƒãƒƒãƒ—åº§æ¨™ã«å¤‰æ›
             int mapX = Mathf.RoundToInt(targetPosition.x + 7.5f);
             int mapZ = Mathf.RoundToInt(targetPosition.z + 7.5f);
+
+            // ãƒãƒƒãƒ—ç¯„å›²å¤–ãƒã‚§ãƒƒã‚¯
             if (mapX < 0 || mapX >= 16 || mapZ < 0 || mapZ >= 16) { continue; }
+
+            // ãƒãƒƒãƒ—ãƒãƒƒãƒ—ã®ç¨®é¡(ç§»å‹•å¯èƒ½ã‹)ãƒã‚§ãƒƒã‚¯ (1, 2, 5 ã¯ç§»å‹•ä¸å¯ã¨ä»®å®š)
             int targetCellType = MapGenerator.map[mapZ, mapX];
-            if (targetCellType == 1 || targetCellType == 2) { continue; }
+            if (targetCellType == 1 || targetCellType == 2 || targetCellType == 5) { continue; }
+
+            // ä»–ã®æ•µãŒã„ãªã„ã‹ãƒã‚§ãƒƒã‚¯
             if (IsEnemyAt(targetPosition)) { continue; }
+
+            // ã™ã¹ã¦ã®ãƒã‚§ãƒƒã‚¯ã‚’ãƒ‘ã‚¹ã—ãŸå ´åˆã€ç§»å‹•å…ˆã¨ã—ã¦ãƒªã‚¹ãƒˆã«è¿½åŠ 
             destinations.Add(targetPosition);
         }
         return destinations;
     }
 
-    /// <summary>
-    /// w’è‚µ‚½À•W‚É (©•ªˆÈŠO‚Ì) Enemyƒ^ƒO‚ÌƒIƒuƒWƒFƒNƒg‚ª‚ ‚é‚©ƒ`ƒFƒbƒN‚·‚é
-    /// </summary>
+    // æŒ‡å®šã—ãŸåº§æ¨™ã« (è‡ªåˆ†ä»¥å¤–ã®) "Enemy" ã‚¿ã‚°ã‚’æŒã¤ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆãŒã‚ã‚‹ã‹ãƒã‚§ãƒƒã‚¯ã—ã¾ã™ã€‚
     bool IsEnemyAt(Vector3 position)
     {
-        // (*** ‚±‚ÌŠÖ”‚Ì’†g‚Í•ÏX‚ ‚è‚Ü‚¹‚ñ ***)
+        // æŒ‡å®šåº§æ¨™ã‚’ä¸­å¿ƒã«åŠå¾„0.4fã®çƒã‚’æç”»ã—ã€æ¥è§¦ã—ãŸã™ã¹ã¦ã®ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ã‚’å–å¾—ã—ã¾ã™ã€‚
         Collider[] hitColliders = Physics.OverlapSphere(position, 0.4f);
         foreach (var hitCollider in hitColliders)
         {
+            // æ¥è§¦ã—ãŸã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆãŒ "Enemy" ã‚¿ã‚°ã‚’æŒã¡ã€ã‹ã¤è‡ªåˆ†è‡ªèº«ã§ãªã„ã‹ç¢ºèª
             if (hitCollider.CompareTag("Enemy") && hitCollider.gameObject != this.gameObject)
             {
-                return true;
+                return true; // ä»–ã®æ•µãŒã„ãŸ
             }
         }
-        return false;
+        return false; // ä»–ã®æ•µã¯ã„ãªã‹ã£ãŸ
     }
 }

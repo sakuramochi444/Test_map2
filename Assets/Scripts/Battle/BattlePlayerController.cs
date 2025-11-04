@@ -1,5 +1,3 @@
-// BattlePlayerController.cs
-
 using UnityEngine;
 
 public class BattlePlayerController : MonoBehaviour

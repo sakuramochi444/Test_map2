@@ -6,177 +6,298 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
+// ゲーム全体の進行状態（プレイヤーや敵の位置、ステータス、マップデータなど）を
+// シーン間で永続的に管理するシングルトンクラスです。
 public class GameManager : MonoBehaviour
 {
+    // シングルトンインスタンス
     public static GameManager instance;
 
-    // ▼▼▼ 以下をすべて追加・修正 ▼▼▼
+    // --- シーン間で保持するゲーム状態 ---
+    public Vector3 playerPosition; // プレイヤーの座標
+    public Quaternion playerRotation; // プレイヤーの向き
+    public List<Vector3> enemyPositions = new List<Vector3>(); // 敵の座標リスト
+    public int[,] mapData; // マップのレイアウトデータ
+    public int currentMapLevelIndex = 0;
+    public bool[,] exploredMapData; // マップの探索済みデータ
 
-    // ゲームの状態を保存するための変数
-    public Vector3 playerPosition;
-    public Quaternion playerRotation;
-    public List<Vector3> enemyPositions = new List<Vector3>();
-    public int[,] mapData;
+    [Header("Prefabs for Restore")]
+    [Tooltip("MainSceneに戻ったときに再配置するためのEnemyプレハブを設定してください")]
+    public GameObject enemyPrefabForRestore; // 復元用の敵プレハブ
 
-    public List<int> validCombatDirections = new List<int>();
+    // 戦闘関連
+    public List<int> validCombatDirections = new List<int>(); // 戦闘突入時の有効な方向
+    public bool combatInitiatedThisFrame = false; // このフレームで戦闘が開始されたか
+    private Vector3 positionOfEnemyInCombat; // 戦闘対象となった敵の座標
+    private bool returnedFromBattle = false; // 戦闘シーンから戻った直後か
+    private string mainSceneName = "MainScene"; // メインシーン名
+    private string battleSceneName = "BattleScene"; // 戦闘シーン名
 
-    // プレイヤーが戦闘を開始したことを示すフレーム単位のフラグ
-    public bool combatInitiatedThisFrame = false;
+    [Header("Weapon Stats (Auto Managed)")]
+    // 武器の状態
+    [Tooltip("現在Rotoが選択されているか (true=Roto, false=Rod)")]
+    public bool isRotoActive = true;
+    [Tooltip("現在の武器の向き (0=A, 1=D, 2=S, 3=W)")]
+    public int currentWeaponDirectionIndex = 0;
 
-    // 戦闘になった敵の位置情報
-    private Vector3 positionOfEnemyInCombat;
-
-    // 戦闘から戻ってきたかを判断するためのフラグ
-    private bool returnedFromBattle = false;
-
-    // あなたのシーン名に合わせてください
-    private string mainSceneName = "MainScene";     // 通常シーンの名前
-    private string battleSceneName = "BattleScene"; // 戦闘シーンの名前
+    [Header("Player Stats (Auto Managed)")]
+    // プレイヤーのステータス
+    public int playerCurrentHealth;
+    public int playerMaxHealth;
+    public int playerAttack;
+    public int playerDefense;
+    public int playerSpeed;
+    private bool playerStatsInitialized = false; // ステータスがGameManagerに登録済みか
 
     void Awake()
     {
-        // シングルトンの設定（シーンをまたいでインスタンスを維持する）
+        // シングルトンパターンの実装
         if (instance == null)
         {
             instance = this;
-            DontDestroyOnLoad(gameObject); // このオブジェクトをシーン遷移時に破棄しない
+            DontDestroyOnLoad(gameObject); // シーンをまたいでも破棄されないようにする
+
+            // 初回起動時（exploredMapDataがまだnullの場合）、探索マップを初期化する
+            if (exploredMapData == null)
+            {
+                // マップサイズは 16x16 と仮定
+                exploredMapData = new bool[16, 16];
+            }
         }
         else
         {
+            // 既にインスタンスが存在する場合は、このオブジェクトを破棄する
             Destroy(gameObject);
         }
     }
 
+    // LateUpdateは全Update処理の後に呼ばれる
     void LateUpdate()
     {
-        // このフラグは1フレームの間だけ有効にする
+        // 戦闘開始フラグは、それがチェックされたフレームの終わりには必ずリセットする
         combatInitiatedThisFrame = false;
     }
 
+    // プレイヤーが敵に捕まった（戦闘に突入した）時に呼ばれます
     public void PlayerCaughtByEnemy(GameObject enemyInCombat, List<int> validDirections)
     {
         Debug.Log("敵に捕まった！戦闘シーンへ移行します。");
 
-        // 1. 現在のゲーム状態を保存する
-        // ▼▼▼ 引数を SaveGameState にも渡す ▼▼▼
+        // 1. メインシーンの現在の状態を保存する
         SaveGameState(enemyInCombat, validDirections);
 
         // 2. 戦闘シーンをロードする
         SceneManager.LoadScene(battleSceneName);
     }
 
-    /// <summary>
-    /// 戦闘シーンからメインシーンへ戻るメソッド
-    /// </summary>
+    // 戦闘シーンからメインシーンへ戻る時に呼ばれます
     public void ReturnToMainScene()
     {
-        Debug.Log("メインシーンへ戻ります。");
-        returnedFromBattle = true; // メインシーンに戻ったことを記録
+        Debug.Log($"メインシーンへ戻ります。プレイヤーHP: {playerCurrentHealth}");
+
+        // 復帰フラグを立ててからメインシーンをロードする
+        // (OnSceneLoaded がこのフラグを見て RestoreGameStateAfterLoad を呼び出す)
+        returnedFromBattle = true;
         SceneManager.LoadScene(mainSceneName);
     }
 
-    /// <summary>
-    /// 現在のゲームの状態を保存する
-    /// </summary>
+    // 戦闘突入時に、現在のゲーム状態（プレイヤー、敵、マップ）を保存します
     private void SaveGameState(GameObject enemyInCombat, List<int> validDirections)
     {
-        // プレイヤーの位置と向きを保存
+        // プレイヤーの位置・向きを保存
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
             playerPosition = player.transform.position;
             playerRotation = player.transform.rotation;
+
+            // プレイヤーステータスを保存
+            CharacterStats playerStats = player.GetComponent<CharacterStats>();
+            if (playerStats != null && playerStatsInitialized)
+            {
+                playerMaxHealth = playerStats.maxHealth;
+                playerCurrentHealth = playerStats.currentHealth;
+                playerAttack = playerStats.attack;
+                playerDefense = playerStats.defense;
+                playerSpeed = playerStats.speed;
+                Debug.Log($"戦闘突入。プレイヤーHP {playerCurrentHealth}/{playerMaxHealth} を保存しました。");
+            }
+            // まだGameManagerにステータスが登録されていない場合 (初回起動時など)
+            else if (playerStats != null && !playerStatsInitialized)
+            {
+                Debug.LogWarning("PlayerStatsがまだGameManagerに登録されていません。先に登録処理を実行します。");
+                RegisterPlayerStats(playerStats);
+                // ステータスを登録した後、再度保存処理を実行する
+                SaveGameState(enemyInCombat, validDirections);
+                return;
+            }
         }
 
-        // 戦闘になった敵の位置を保存
+        // 戦闘対象の「敵」の位置をキャッシュ
         positionOfEnemyInCombat = enemyInCombat.transform.position;
 
-        // すべての敵の位置を保存
+        // 戦闘対象「以外」のすべての敵の位置をリストに保存
         enemyPositions.Clear();
         GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
         foreach (var enemy in enemies)
         {
+            // 戦闘に突入する敵自身は、復元リストから除外する
+            if (enemy == enemyInCombat)
+            {
+                Debug.Log($"敵 {enemy.name} は戦闘対象のため、保存リストから除外します。");
+                continue;
+            }
             enemyPositions.Add(enemy.transform.position);
         }
+        Debug.Log($"戦闘突入。{enemyPositions.Count} 体の敵の位置を保存しました。");
 
-        // 現在のマップデータ（宝箱の状態など）を保存
-        mapData = (int[,])MapGenerator.map.Clone(); // 配列を値渡しでコピー
+        // マップデータ（レイアウト）を保存
+        mapData = (int[,])MapGenerator.map.Clone();
 
-        // ▼▼▼ 追加 ▼▼▼
+        // 探索済みマップデータを保存
+        if (this.exploredMapData != null)
+        {
+            exploredMapData = (bool[,])this.exploredMapData.Clone();
+        }
+        else
+        {
+            // 万が一 exploredMapData が null だった場合のフォールバック
+            exploredMapData = new bool[16, 16];
+        }
+
         // 戦闘時の有効な方向を保存
         validCombatDirections.Clear();
         if (validDirections != null)
         {
             validCombatDirections.AddRange(validDirections);
         }
-        // ▲▲▲ 追加 ▲▲▲
     }
 
-    /// <summary>
-    /// メインシーンがロードされた後にゲームの状態を復元する
-    /// </summary>
+    // PlayerControllerなどから呼び出され、プレイヤーのステータスをGameManagerに登録します
+    public void RegisterPlayerStats(CharacterStats stats)
+    {
+        if (playerStatsInitialized) return; // 既に登録済みの場合は何もしない
+
+        playerMaxHealth = stats.maxHealth;
+        playerCurrentHealth = stats.currentHealth;
+        playerAttack = stats.attack;
+        playerDefense = stats.defense;
+        playerSpeed = stats.speed;
+        playerStatsInitialized = true; // 登録済みフラグを立てる
+        Debug.Log($"プレイヤーの初期ステータスをGameManagerに登録しました。HP: {playerCurrentHealth}/{playerMaxHealth}");
+    }
+
+    // プレイヤーステータスが登録済みかを返します
+    public bool IsPlayerStatsInitialized()
+    {
+        return playerStatsInitialized;
+    }
+
+
+    // メインシーンがロードされた後（戦闘からの復帰時）に、状態を復元するコルーチンです
     private IEnumerator RestoreGameStateAfterLoad()
     {
-        // シーン内のオブジェクトがすべて読み込まれるのを1フレーム待つ
+        // シーンが完全にロードされ、オブジェクトが配置されるのを1フレーム待機します
         yield return null;
 
         Debug.Log("ゲームの状態を復元します。");
 
-        // プレイヤーの位置と向きを復元
+        // プレイヤーの位置・向きを復元
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
-            // CharacterControllerはワープの邪魔になることがあるので一時的に無効化
+            // transform.positionを直接変更するため、CharacterControllerを一時的に無効化
             CharacterController cc = player.GetComponent<CharacterController>();
             if (cc != null) cc.enabled = false;
+
             player.transform.position = playerPosition;
             player.transform.rotation = playerRotation;
-            if (cc != null) cc.enabled = true;
-        }
 
-        // マップの状態（宝箱など）を復元
-        MapGenerator.instance.ChangeMap(mapData);
+            if (cc != null) cc.enabled = true; // CharacterControllerを再度有効化
 
-        // 現在シーンの敵をすべて削除
-        GameObject[] existingEnemies = GameObject.FindGameObjectsWithTag("Enemy");
-        foreach (var enemy in existingEnemies)
-        {
-            Destroy(enemy);
-        }
-
-        // 保存しておいた位置に敵を再配置する
-        foreach (Vector3 pos in enemyPositions)
-        {
-            // 戦闘した敵の位置と非常に近い場合は、再配置しない（=破壊したことになる）
-            if (Vector3.Distance(pos, positionOfEnemyInCombat) < 0.1f)
+            // プレイヤーのステータス（特に戦闘で変動したHP）を復元
+            CharacterStats playerStats = player.GetComponent<CharacterStats>();
+            if (playerStats != null && playerStatsInitialized)
             {
-                continue;
+                playerStats.InitializeStats(
+                    playerMaxHealth,
+                    playerCurrentHealth,
+                    playerAttack,
+                    playerDefense,
+                    playerSpeed
+                );
+                Debug.Log($"戦闘から復帰。プレイヤーHPを {playerStats.currentHealth}/{playerStats.maxHealth} に復元しました。");
             }
-            Instantiate(MapGenerator.instance.EnemyPrefab, pos, Quaternion.identity);
         }
 
-        returnedFromBattle = false; // フラグをリセット
+        // マップデータを復元
+        if (MapGenerator.instance != null && mapData != null)
+        {
+            // マップデータをMapGeneratorに渡して再生成させる (falseはアニメーションなしの意)
+            MapGenerator.instance.ChangeMap(mapData, false);
+        }
+        else
+        {
+            Debug.LogError("MapGeneratorのインスタンスまたはmapDataが見つかりません。");
+        }
+
+        // 敵を保存された位置に再配置
+        if (enemyPrefabForRestore != null)
+        {
+            GameObject enemyHolder = new GameObject("Restored_Enemies");
+            foreach (Vector3 pos in enemyPositions)
+            {
+                // 保存しておいた位置(pos)に、指定されたプレハブ(enemyPrefabForRestore)を生成
+                Instantiate(enemyPrefabForRestore, pos, Quaternion.identity, enemyHolder.transform);
+            }
+            Debug.Log($"{enemyPositions.Count} 体の敵を保存位置から復元しました。");
+        }
+        else
+        {
+            Debug.LogError("GameManagerに 'Enemy Prefab For Restore' が設定されていません。敵を復元できません。");
+        }
+
+        // 復元が完了したので、フラグをリセット
+        returnedFromBattle = false;
     }
 
-    // シーンがロードされた時に呼ばれるイベントハンドラ
+    // 探索済みマップデータをリセットします（例：新しいフロアに進んだ時など）
+    public void ResetExplorationData()
+    {
+        Debug.Log("新しいマップレベルのため、探索データをリセットします。");
+        exploredMapData = new bool[16, 16];
+    }
+
+    // 戦闘シーンから戻ってきた直後かどうかを外部に伝えます
+    public bool IsReturningFromBattle()
+    {
+        return returnedFromBattle;
+    }
+
+    // --- シーンロード時のイベントハンドラ設定 ---
+
+    // シーンがロードされた時に自動的に呼ばれるメソッド
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // メインシーンに、かつ戦闘から戻ってきた場合に限り、状態を復元する
+        // もしロードされたのがメインシーンで、かつ戦闘から戻ってきたところなら
         if (scene.name == mainSceneName && returnedFromBattle)
         {
+            // 状態を復元するコルーチンを開始する
             StartCoroutine(RestoreGameStateAfterLoad());
         }
     }
 
-    // オブジェクトが有効になった時にイベント登録
+    // オブジェクトが有効になった時に呼ばれる
     void OnEnable()
     {
+        // シーンロード時のイベント(OnSceneLoaded)を購読（登録）する
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
-    // オブジェクトが無効になった時にイベント解除
+    // オブジェクトが無効になった時に呼ばれる
     void OnDisable()
     {
+        // 購読（登録）を解除する
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 }
