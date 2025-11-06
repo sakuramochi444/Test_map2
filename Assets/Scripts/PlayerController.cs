@@ -4,6 +4,7 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic; // GetValidCombatDirections で List を使用
 using System.Linq; // (このスクリプトでは Linq は使用されていませんが、念のため残します)
+using UnityEngine.SceneManagement;
 
 // プレイヤーキャラクターの操作（移動、武器の切り替え、探索）や、
 // 敵との遭遇、アイテム取得などのインタラクションを処理します。
@@ -35,18 +36,11 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
-        // 現在位置の周囲を「探索済み」としてGameManagerに記録
-        // (MapGeneratorによる位置設定前だと(0,0,0)を探索してしまうため、位置が設定されてから実行)
         if (transform.position != Vector3.zero)
         {
             UpdateExploration(transform.position);
         }
-
-        // 起動時はすべての武器モデルを非表示にする
-        // (この後 GameManager の状態に基づいて再表示するため)
         HideAllWeapons();
-
-        // 宝箱取得エフェクトも非表示に
         tanni1.SetActive(false);
         tanni2.SetActive(false);
         tanni3.SetActive(false);
@@ -64,22 +58,33 @@ public class PlayerController : MonoBehaviour
         {
             if (!GameManager.instance.IsPlayerStatsInitialized())
             {
+                // 1. (初回起動時) GameManagerにステータスを登録
                 GameManager.instance.RegisterPlayerStats(myStats);
+            }
+            else
+            {
+                // 2. (戦闘復帰時 や DeathSceneからの復帰時)
+                //    GameManagerに保存されているステータス（HPなど）を
+                //    このシーンの CharacterStats (myStats) に反映（復元）する
+                myStats.InitializeStats(
+                    GameManager.instance.playerMaxHealth,
+                    GameManager.instance.playerCurrentHealth,
+                    GameManager.instance.playerAttack,
+                    GameManager.instance.playerDefense,
+                    GameManager.instance.playerSpeed
+                );
+                Debug.Log($"GameManagerからステータスを復元しました。HP: {myStats.currentHealth}/{myStats.maxHealth}");
             }
         }
 
         // GameManagerの状態に基づいて、武器の表示を初期化します。
-        // (例: 戦闘から戻ってきた時など、前回の武器状態を復元するため)
         if (GameManager.instance != null)
         {
-            // GameManagerに保存されている向き(currentWeaponDirectionIndex)で表示を初期化
-            SetActiveWeaponDisplay(GameManager.instance.currentWeaponDirectionIndex, false); // false = GameManagerの値は変更しない
+            SetActiveWeaponDisplay(GameManager.instance.currentWeaponDirectionIndex, false);
         }
         else
         {
-            // GameManagerが見つからない場合（シーン単体テスト時など）
-            // デフォルトの武器（Roto, A向き）を表示
-            SetActiveWeaponDisplay(0, true); // 0 = A向き
+            SetActiveWeaponDisplay(0, true);
         }
     }
 
@@ -292,8 +297,19 @@ public class PlayerController : MonoBehaviour
             // 2. 次に移動すべきレベルのインデックスを決定する (新設メソッド)
             int nextLevelIndex = GetNextLevelIndex(currentLevel, stairCoord);
 
-            // 3. MapGeneratorにマップ変更を依頼
-            if (nextLevelIndex != -1) // -1 は「移動先なし」を示す
+            // 3. 取得したインデックスに基づいて処理を分岐
+
+            // [ここから変更]
+            // 3a. クリア判定 (nextLevelIndex が -2 の場合)
+            if (nextLevelIndex == -2)
+            {
+                Debug.Log("最終レベルをクリアしました！ VictoryScene に遷移します。");
+                // (注意: "VictoryScene" が Build Settings に追加されている必要があります)
+                SceneManager.LoadScene("VictoryScene");
+                return; // シーン遷移するので以降の処理は不要
+            }
+            // 3b. 通常の階層移動 (nextLevelIndex が 0 以上の場合)
+            else if (nextLevelIndex >= 0)
             {
                 // インデックスでマップ切り替えを依頼
                 MapGenerator.instance.ChangeMap(nextLevelIndex);
@@ -302,13 +318,28 @@ public class PlayerController : MonoBehaviour
                 // (MapGenerator.ChangeMap がプレイヤー位置を自動設定するので、
                 //  移動後の現在地 (transform.position) を探索済みにする)
                 UpdateExploration(transform.position);
+
+                // --- 5. HPを全回復する
+                if (myStats != null && GameManager.instance != null && GameManager.instance.IsPlayerStatsInitialized())
+                {
+                    // プレイヤーコンポーネント(myStats)のHPを最大値にする
+                    myStats.currentHealth = myStats.maxHealth;
+
+                    // GameManagerに保存されているHPも最大値に更新する
+                    // (これにより、次に戦闘に入った時に全快状態で始まる)
+                    GameManager.instance.playerCurrentHealth = myStats.maxHealth;
+
+                    Debug.Log($"階層移動によりHPが全回復しました: {myStats.currentHealth}/{myStats.maxHealth}");
+                }
             }
+            // 3c. 移動不可 (nextLevelIndex が -1 の場合)
             else
             {
                 // 移動先が定義されていない階段だった場合（壁と同じ扱い）
                 Debug.LogWarning($"階段 ({stairCoord.x}, {stairCoord.y}) に対応する移動先が未定義です。");
                 UpdateExploration(transform.position); // 移動前の位置を探索済みにする
             }
+            // [ここまで変更]
         }
         // 3: 宝箱
         else if (targetCellType == 3)
@@ -446,9 +477,9 @@ public class PlayerController : MonoBehaviour
                 break;
 
             case 4: // 現在 Level 4 (level5) にいる場合
-                // 踏んだ座標が (x=1, z=13) なら Index 0 (Level 1) へ
+                // 踏んだ座標が (x=1, z=13) なら「クリア」(-2) を返す
                 // (注: MapGenerator.cs の level5[13, 1] = 2 とルールが一致しているか確認してください)
-                if (stairCoord.x == 1 && stairCoord.y == 13) return 0;
+                if (stairCoord.x == 1 && stairCoord.y == 13) return -2; // [ここを変更] 0 (Level 1) ではなく -2 を返す
                 // (例: Level 3 へ戻る階段)
                 // if (stairCoord.x == X && stairCoord.y == Z) return 3;
                 break;

@@ -32,6 +32,7 @@ public class GameManager : MonoBehaviour
     private bool returnedFromBattle = false; // 戦闘シーンから戻った直後か
     private string mainSceneName = "MainScene"; // メインシーン名
     private string battleSceneName = "BattleScene"; // 戦闘シーン名
+    public string deathSceneName = "DeathScene"; // ゲームオーバーシーン名
 
     [Header("Weapon Stats (Auto Managed)")]
     // 武器の状態
@@ -99,6 +100,15 @@ public class GameManager : MonoBehaviour
         // (OnSceneLoaded がこのフラグを見て RestoreGameStateAfterLoad を呼び出す)
         returnedFromBattle = true;
         SceneManager.LoadScene(mainSceneName);
+    }
+
+    public void GoToDeathScene()
+    {
+        Debug.Log("プレイヤーが死亡しました。DeathSceneへ移行します。");
+        // この時点で GameManager には戦闘突入前の MainScene の状態が
+        // 保存されたままなので、DeathScene のボタンから復帰が可能です。
+        returnedFromBattle = false; // MainSceneへの復元はしない
+        SceneManager.LoadScene(deathSceneName);
     }
 
     // 戦闘突入時に、現在のゲーム状態（プレイヤー、敵、マップ）を保存します
@@ -285,6 +295,35 @@ public class GameManager : MonoBehaviour
             // 状態を復元するコルーチンを開始する
             StartCoroutine(RestoreGameStateAfterLoad());
         }
+    }
+
+    /// <summary>
+    /// 現在の階層（GameManagerが記憶しているレベル）を初期状態からやり直します。
+    /// DeathScene やポーズメニューから呼び出されます。
+    /// </summary>
+    public void RestartCurrentLevel()
+    {
+        Debug.Log($"現在の階層 (Level {currentMapLevelIndex}) を初期状態からやり直します。");
+
+        // 1. 復帰フラグを false にする
+        //    これにより、MainSceneロード時に RestoreGameStateAfterLoad が実行されず、
+        //    MapGenerator.Start() が実行されるようになります。
+        returnedFromBattle = false;
+
+        // 2. GameManager が保持しているプレイヤーのHPを最大値にリセットする
+        //    (ステータスが初期化されている場合のみ)
+        if (playerStatsInitialized)
+        {
+            playerCurrentHealth = playerMaxHealth;
+            Debug.Log($"プレイヤーHPを {playerCurrentHealth}/{playerMaxHealth} にリセットしました。");
+        }
+        else
+        {
+            Debug.LogWarning("GameManagerのステータスが未初期化のため、HPリセットはスキップされました。 (MainSceneロード後に初期化されます)");
+        }
+
+        // 3. MainScene をロードする
+        SceneManager.LoadScene(mainSceneName);
     }
 
     // オブジェクトが有効になった時に呼ばれる

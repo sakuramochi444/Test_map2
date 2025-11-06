@@ -188,12 +188,30 @@ public class MapGenerator : MonoBehaviour
         if (GameManager.instance != null && GameManager.instance.IsReturningFromBattle())
         {
             Debug.Log("戦闘から復帰。MapGeneratorのStart処理をスキップします。");
+            // (この場合、GameManager.RestoreGameStateAfterLoad がマップを復元します)
             return;
         }
 
         // 通常起動時（戦闘復帰でない場合）
-        // デフォルトで level 1 (Index 0) マップを、敵あり(true)で生成します。
-        ChangeMap(0, true);
+        int levelToLoad = 0; // デフォルトはレベル1 (Index 0)
+
+        // GameManager が存在し、有効なレベルインデックスを保持しているかチェック
+        if (GameManager.instance != null &&
+            GameManager.instance.currentMapLevelIndex >= 0 &&
+            GameManager.instance.currentMapLevelIndex < mapLevels.Count)
+        {
+            // (例: DeathSceneから戻ってきた場合や、StartSceneから来た場合)
+            // GameManagerが記憶している階層インデックスを使用する
+            levelToLoad = GameManager.instance.currentMapLevelIndex;
+            Debug.Log($"GameManagerから階層インデックス {levelToLoad} を引き継いでマップを生成します。");
+        }
+        else
+        {
+            Debug.Log($"GameManagerがいないかインデックスが無効なため、デフォルトの階層 (Index {levelToLoad}) で開始します。");
+        }
+
+        // 決定した階層(levelToLoad)で、敵あり(true)でマップを生成します。
+        ChangeMap(levelToLoad, true);
     }
 
     // 外部からマップ変更を要求する際の簡易メソッド（インデックス指定・敵あり）
@@ -448,7 +466,7 @@ public class MapGenerator : MonoBehaviour
 
         // (Y座標はプレイヤーの基準位置に合わせる。
         //  EnemyPrefabが 0.5f で生成されているため、プレイヤーも 0.5f と仮定)
-        Vector3 worldPosition = new Vector3(posX, 0.5f, posZ);
+        Vector3 worldPosition = new Vector3(posX, 1.0f, posZ);
 
         // 3. プレイヤーオブジェクトを検索
         GameObject player = GameObject.FindGameObjectWithTag("Player");
