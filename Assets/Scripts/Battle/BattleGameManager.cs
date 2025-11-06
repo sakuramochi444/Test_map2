@@ -57,11 +57,22 @@ public class BattleGameManager : MonoBehaviour
     public string gameOverSceneName = "MainScene"; // (現在は未使用)
 
 
-    // ... (中略: Start, HideAllMonsters, InitializeEnemies は変更なし) ...
+    // FlagManager への参照を保持する変数
+    private FlagManager flagManager;
+
     void Start()
     {
         audioSource = GetComponent<AudioSource>();
         audioSource.playOnAwake = false;
+
+        // MainSceneから持ち越されたシングルトンインスタンスを直接参照する
+        flagManager = FlagManager.instance;
+
+        if (flagManager == null)
+        {
+            // (旧) Debug.LogError("BattleGameManager に FlagManager がアタッチされていません！");
+            Debug.LogError("FlagManager.instance が見つかりません！ MainSceneから正しくロードされていない可能性があります。");
+        }
 
         foreach (var roto in rotos) { if (roto != null) roto.SetActive(false); }
         foreach (var rod in rods) { if (rod != null) rod.SetActive(false); }
@@ -506,10 +517,19 @@ public class BattleGameManager : MonoBehaviour
                 soundClip = rotoAttackSound;
                 targetEnemy.TakeDamage(finalDamage);
 
+                // 敵のHPが0以下になったかチェック
                 if (targetEnemy.currentHealth <= 0 && targetEnemy.gameObject.activeSelf)
                 {
                     targetEnemy.gameObject.SetActive(false);
                     Debug.Log($"{targetEnemy.gameObject.name} (スロット) を倒した！");
+
+                    // --- [ここから修正] ---
+                    // 敵を倒したので、FlagManager のメソッドを呼び出す
+                    if (flagManager != null)
+                    {
+                        flagManager.NotifyEnemyDefeated();
+                    }
+                    // --- [修正ここまで] ---
                 }
             }
             else
@@ -561,10 +581,19 @@ public class BattleGameManager : MonoBehaviour
                     }
                     targetEnemy.TakeDamage(finalDamage);
 
+                    // 敵のHPが0以下になったかチェック
                     if (targetEnemy.currentHealth <= 0 && targetEnemy.gameObject.activeSelf)
                     {
                         targetEnemy.gameObject.SetActive(false);
                         Debug.Log($"{targetEnemy.gameObject.name} (スロット) を倒した！");
+
+                        // --- [ここから修正] ---
+                        // 敵を倒したので、FlagManager のメソッドを呼び出す
+                        if (flagManager != null)
+                        {
+                            flagManager.NotifyEnemyDefeated();
+                        }
+                        // --- [修正ここまで] ---
                     }
                 }
                 else // 無効な対象

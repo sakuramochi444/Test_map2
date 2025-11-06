@@ -1,4 +1,4 @@
-﻿// PlayerController.cs
+﻿// PlayerController.cs (修正後)
 
 using UnityEngine;
 using System.Collections;
@@ -6,6 +6,7 @@ using System.Collections.Generic; // GetValidCombatDirections で List を使用
 using System.Linq; // (このスクリプトでは Linq は使用されていませんが、念のため残します)
 using UnityEngine.SceneManagement;
 
+// (中略: クラス冒頭、Start, 武器関連メソッド, Update など)
 // プレイヤーキャラクターの操作（移動、武器の切り替え、探索）や、
 // 敵との遭遇、アイテム取得などのインタラクションを処理します。
 public class PlayerController : MonoBehaviour
@@ -304,6 +305,15 @@ public class PlayerController : MonoBehaviour
             if (nextLevelIndex == -2)
             {
                 Debug.Log("最終レベルをクリアしました！ VictoryScene に遷移します。");
+
+                // --- [追加] FlagManagerで階層クリアフラグを更新 ---
+                if (FlagManager.instance != null)
+                {
+                    FlagManager.instance.NotifyFloorCleared();
+                    Debug.Log("API: dungeon_floors_cleared (最終クリア)");
+                }
+                // ------------------------------------------------
+
                 // (注意: "VictoryScene" が Build Settings に追加されている必要があります)
                 SceneManager.LoadScene("VictoryScene");
                 return; // シーン遷移するので以降の処理は不要
@@ -331,6 +341,14 @@ public class PlayerController : MonoBehaviour
 
                     Debug.Log($"階層移動によりHPが全回復しました: {myStats.currentHealth}/{myStats.maxHealth}");
                 }
+
+                // --- [追加] FlagManagerで階層クリアフラグを更新 ---
+                if (FlagManager.instance != null)
+                {
+                    FlagManager.instance.NotifyFloorCleared();
+                    Debug.Log("API: dungeon_floors_cleared (階層移動)");
+                }
+                // ------------------------------------------------
             }
             // 3c. 移動不可 (nextLevelIndex が -1 の場合)
             else
@@ -491,7 +509,7 @@ public class PlayerController : MonoBehaviour
 
     // プレイヤーの初期位置を設定します（ゲーム開始時、または階段移動時）。
     // isFirstTime: ゲームの初回起動かどうか
-    void SetInitialPosition(bool isFirstTime){}
+    void SetInitialPosition(bool isFirstTime) { }
 
     // 物理的なトリガー（Collider）に接触した時に呼ばれます。
     // (TryMoveのOverlapSphereとは別。こちらはCharacterControllerが移動した結果として検知)
@@ -541,4 +559,4 @@ public class PlayerController : MonoBehaviour
         // 0(道), 3(宝箱), 4(敵) のマスは有効
         return tileType == 0 || tileType == 3 || tileType == 4;
     }
-}   
+}

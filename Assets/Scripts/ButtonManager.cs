@@ -1,3 +1,5 @@
+// ButtonManager.cs (修正後)
+
 using UnityEngine;
 using UnityEngine.SceneManagement; // シーン管理に必要
 
@@ -22,17 +24,19 @@ public class ButtonManager : MonoBehaviour
         Debug.Log($"ゲームの状態をリセットし、{startSceneName} に戻ります。");
 
         // 1. GameManager (DontDestroyOnLoad) を破棄する
-        //    これにより、次回StartSceneからMainSceneに移行した際に、
-        //    新しいGameManagerがクリーンな状態で作成されます。
         if (GameManager.instance != null)
         {
             Destroy(GameManager.instance.gameObject);
             Debug.Log("GameManagerインスタンスを破棄しました。");
         }
 
-        // 2. MapGeneratorの静的データ(mapLevels)は、
-        //    Awake()の if (mapLevels.Count == 0) ブロックによって
-        //    再ロード時に自動的に処理されるため、ここでリセットする必要はありません。
+        // 2. FlagManager (DontDestroyOnLoad) も破棄する
+        //    (StartSceneに配置されているシングルトンをすべてリセットする)
+        if (FlagManager.instance != null)
+        {
+            Destroy(FlagManager.instance.gameObject);
+            Debug.Log("FlagManagerインスタンスを破棄しました。");
+        }
 
         // 3. StartSceneをロードする
         SceneManager.LoadScene(startSceneName);
@@ -48,11 +52,9 @@ public class ButtonManager : MonoBehaviour
     {
         Debug.Log("ゲームを終了します...");
 
-        // ゲームを終了する
         Application.Quit();
 
 #if UNITY_EDITOR
-        // Unityエディタ実行中の場合は、再生を停止（ビルド版では無視されます）
         UnityEditor.EditorApplication.isPlaying = false;
 #endif
     }
@@ -70,50 +72,32 @@ public class ButtonManager : MonoBehaviour
         // 1. GameManagerのデータを回復
         if (GameManager.instance != null && GameManager.instance.IsPlayerStatsInitialized())
         {
-            // GameManagerに保存されているHP値を最大値に設定
             GameManager.instance.playerCurrentHealth = GameManager.instance.playerMaxHealth;
             Debug.Log($"GameManagerのHPを回復: {GameManager.instance.playerCurrentHealth}/{GameManager.instance.playerMaxHealth}");
         }
         else
         {
             Debug.LogWarning("GameManagerが見つからないか、ステータスが未初期化のため、GameManager上のHPは回復できませんでした。");
-            // GameManagerがなくても、シーン上のプレイヤーの回復は試みる
         }
 
-        // 2. 現在のシーンのプレイヤーのHPを即時回復 (シーンによって対象が異なる)
-
-        // BattleSceneにいるか？ (BattleGameManagerを探す)
-
-        // ▼▼▼ 警告箇所を修正 ▼▼▼
-        // BattleGameManager b_gm = FindObjectOfType<BattleGameManager>(); // 旧
-        BattleGameManager b_gm = FindFirstObjectByType<BattleGameManager>(); // 新
-        // ▲▲▲ 警告箇所を修正 ▲▲▲
-
+        // 2. 現在のシーンのプレイヤーのHPを即時回復
+        BattleGameManager b_gm = FindFirstObjectByType<BattleGameManager>();
         if (b_gm != null && b_gm.playerStats != null)
         {
-            // BattleSceneのプレイヤーのHealメソッドを呼ぶ
-            // (CharacterStats.Heal()は自動的にmaxHealthでクランプしてくれます)
             b_gm.playerStats.Heal(b_gm.playerStats.maxHealth);
             Debug.Log($"BattleSceneのプレイヤーHPを回復: {b_gm.playerStats.currentHealth}/{b_gm.playerStats.maxHealth}");
-
-            // OnDamagedイベントを発行してUI（HPバーなど）を更新させる
             b_gm.playerStats.OnDamaged?.Invoke();
-            return; // BattleSceneの処理が終わったらMainSceneの処理は不要
+            return;
         }
 
-        // MainSceneにいるか？ ("Player"タグを探す)
-        // (BattleSceneにいなかった場合に実行される)
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
         if (playerObj != null)
         {
             CharacterStats mainPlayerStats = playerObj.GetComponent<CharacterStats>();
             if (mainPlayerStats != null)
             {
-                // MainSceneのプレイヤーのHealメソッドを呼ぶ
                 mainPlayerStats.Heal(mainPlayerStats.maxHealth);
                 Debug.Log($"MainSceneのプレイヤーHPを回復: {mainPlayerStats.currentHealth}/{mainPlayerStats.maxHealth}");
-
-                // OnDamagedイベントを発行してUI（HPバーなど）を更新させる
                 mainPlayerStats.OnDamaged?.Invoke();
             }
         }
@@ -129,11 +113,24 @@ public class ButtonManager : MonoBehaviour
         {
             Debug.Log("現在の階層を最初からやり直します。");
 
-            // ▼▼▼ 修正箇所 ▼▼▼
-            // (旧) GameManager.instance.ReturnToMainScene(); 
-            // (新) 新しく作成した RestartCurrentLevel メソッドを呼び出す
+            // --- [ここから追加] ---
+            // FlagManager が存在すれば、dungeon_played を送信する
+            // (FlagManager は StartScene で生成され、DontDestroyOnLoad されているはず)
+            if (FlagManager.instance != null)
+            {
+                // FlagManager.instance.NotifyDungeonPlayed();
+                Debug.Log("API: dungeon_played (リスタート)");
+            }
+            else
+            {
+                // StartSceneにFlagManagerが配置されていないか、
+                // 何らかの理由で破棄された場合の警告
+                Debug.LogWarning("リスタート時に FlagManager.instance が見つかりませんでした。");
+            }
+            // --- [追加ここまで] ---
+
+            // GameManager のリスタート処理を呼び出す
             GameManager.instance.RestartCurrentLevel();
-            // ▲▲▲ 修正箇所 ▲▲▲
         }
         else
         {
