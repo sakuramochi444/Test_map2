@@ -67,12 +67,21 @@ public class FlagManager : MonoBehaviour
     // --- メインの関数 ---
 
     /// <summary>
-    /// 敵を倒した時など、外部からこの関数を呼び出します。
+    /// 敵の討伐総数を送信します (ButtonManagerからリセット時に呼び出されます)。
     /// </summary>
-    public void NotifyEnemyDefeated()
+    /// <param name="amount">送信する総討伐数</param>
+    public void NotifyEnemyDefeated(int amount)
     {
-        // コルーチンを開始してフラグを更新
-        StartCoroutine(UpdateFlagCoroutine("dungeon_enemies_defeated", 1));
+        // 倒した数が 0 以下なら何もしない
+        if (amount <= 0)
+        {
+            Debug.Log($"[FlagManager] 討伐数 {amount} のため、API送信はスキップします。");
+            return;
+        }
+
+        // コルーチンを開始してフラグを更新 (引数の amount を使用)
+        Debug.Log($"[FlagManager] 討伐総数 {amount} でAPI送信を開始します。");
+        StartCoroutine(UpdateFlagCoroutine("dungeon_enemies_defeated", amount));
     }
 
     /// <summary>

@@ -1211,6 +1211,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 433979457}
+  - component: {fileID: 433979458}
   - component: {fileID: 433979456}
   m_Layer: 0
   m_Name: GameManager
@@ -1246,6 +1247,7 @@ MonoBehaviour:
   playerAttack: 0
   playerDefense: 0
   playerSpeed: 0
+  totalKillCount: 0
 --- !u!4 &433979457
 Transform:
   m_ObjectHideFlags: 0
@@ -1261,6 +1263,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &433979458
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 433979455}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51d6c085ef26a434d96d0ec5e2bdf5b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  startSceneName: StartScene
 --- !u!1 &444962809
 GameObject:
   m_ObjectHideFlags: 0
@@ -1405,51 +1420,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 536993553}
   m_CullTransparentMesh: 1
---- !u!1 &580000706
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 580000708}
-  - component: {fileID: 580000707}
-  m_Layer: 0
-  m_Name: ButtonManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &580000707
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 580000706}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 51d6c085ef26a434d96d0ec5e2bdf5b3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  startSceneName: StartScene
---- !u!4 &580000708
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 580000706}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 154.00111, y: -328.74646, z: -8.6298065}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &645548490
 GameObject:
   m_ObjectHideFlags: 0
@@ -1533,7 +1503,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 580000707}
+      - m_Target: {fileID: 433979458}
         m_TargetAssemblyTypeName: ButtonManager, Assembly-CSharp
         m_MethodName: HealPlayerToFull
         m_Mode: 1
@@ -1773,7 +1743,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 580000707}
+      - m_Target: {fileID: 433979458}
         m_TargetAssemblyTypeName: ButtonManager, Assembly-CSharp
         m_MethodName: ResetAndReturnToStart
         m_Mode: 1
@@ -5610,7 +5580,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 580000707}
+      - m_Target: {fileID: 433979458}
         m_TargetAssemblyTypeName: ButtonManager, Assembly-CSharp
         m_MethodName: QuitGame
         m_Mode: 1
@@ -5961,4 +5931,3 @@ SceneRoots:
   - {fileID: 2137315726674102625}
   - {fileID: 532748309209582338}
   - {fileID: 433979457}
-  - {fileID: 580000708}

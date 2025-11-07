@@ -50,6 +50,10 @@ public class GameManager : MonoBehaviour
     public int playerSpeed;
     private bool playerStatsInitialized = false; // ステータスがGameManagerに登録済みか
 
+    [Header("Stats (Auto Managed)")] // (分かりやすいようヘッダーを追加)
+    [Tooltip("現在のセッションでの総討伐数")]
+    public int totalKillCount = 0;
+
     void Awake()
     {
         // シングルトンパターンの実装
@@ -64,6 +68,9 @@ public class GameManager : MonoBehaviour
                 // マップサイズは 16x16 と仮定
                 exploredMapData = new bool[16, 16];
             }
+
+            // 討伐カウントを初期化
+            totalKillCount = 0;
         }
         else
         {
@@ -324,6 +331,16 @@ public class GameManager : MonoBehaviour
 
         // 3. MainScene をロードする
         SceneManager.LoadScene(mainSceneName);
+    }
+
+    /// <summary>
+    /// 敵を倒した時に BattleGameManager から呼び出され、総討伐数を1増やします。
+    /// </summary>
+    public void NotifyEnemyDefeated()
+    {
+        totalKillCount++;
+        // (注: ここではAPI送信は行わない)
+        Debug.Log($"討伐数をインクリメントしました。総討伐数: {totalKillCount}");
     }
 
     // オブジェクトが有効になった時に呼ばれる

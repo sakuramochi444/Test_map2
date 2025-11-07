@@ -57,7 +57,7 @@ public class BattlePlayerController : MonoBehaviour
 
         // --- [ここから変更] ---
         // 待機時間 (第1引数) を 1.0f に変更します。
-        damageEffectCoroutine = StartCoroutine(DamageEffectCoroutine(1.0f, 0.5f));
+        damageEffectCoroutine = StartCoroutine(DamageEffectCoroutine(0.5f, 0.5f));
         // --- [変更ここまで] ---
     }
 

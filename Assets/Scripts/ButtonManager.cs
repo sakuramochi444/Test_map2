@@ -23,10 +23,32 @@ public class ButtonManager : MonoBehaviour
     {
         Debug.Log($"ゲームの状態をリセットし、{startSceneName} に戻ります。");
 
+        // --- [ここから変更] ---
+
+        // 0. FlagManager と GameManager が存在するか確認
+        if (FlagManager.instance != null && GameManager.instance != null)
+        {
+            // 0a. GameManagerから総討伐数を取得
+            int totalKills = GameManager.instance.totalKillCount;
+            Debug.Log($"このセッションの総討伐数: {totalKills} を FlagManager に送信します。");
+
+            // 0b. FlagManager のメソッドを呼び出し、総討伐数を送信
+            // (FlagManager側で 0 以下の場合はスキップされます)
+            FlagManager.instance.NotifyEnemyDefeated(totalKills);
+        }
+        else
+        {
+            Debug.LogWarning("FlagManager または GameManager が見つからないため、討伐数の送信をスキップします。");
+        }
+
+        // --- [変更ここまで] ---
+
+
         // 1. GameManager (DontDestroyOnLoad) を破棄する
         if (GameManager.instance != null)
         {
             Destroy(GameManager.instance.gameObject);
+            GameManager.instance = null; // [修正] static変数を明示的にnullにする
             Debug.Log("GameManagerインスタンスを破棄しました。");
         }
 
@@ -35,6 +57,7 @@ public class ButtonManager : MonoBehaviour
         if (FlagManager.instance != null)
         {
             Destroy(FlagManager.instance.gameObject);
+            FlagManager.instance = null; // [修正] static変数を明示的にnullにする
             Debug.Log("FlagManagerインスタンスを破棄しました。");
         }
 

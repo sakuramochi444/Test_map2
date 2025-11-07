@@ -162,32 +162,57 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         Vector3 moveDirection = Vector3.zero; // このフレームでの移動方向
-        bool keyPressed = false; // 移動キー（WASD）が押されたか
+        bool keyPressed = false; // 「移動」キー（SPACE）が押されたか
 
-        // --- WASDキーによる移動と武器の向き変更 ---
+        // --- WASDキーによる視点変更 ---
         if (Input.GetKeyDown(KeyCode.W))
         {
-            moveDirection.x = 1; // X軸 正方向 (マップ上は W/X+)
-            SetActiveWeaponDisplay(3, true); // 向き(3=W)をセットし、GameManagerも更新(true)
-            keyPressed = true;
+            // 向き(3=W)をセットし、GameManagerも更新(true)
+            SetActiveWeaponDisplay(3, true);
         }
         else if (Input.GetKeyDown(KeyCode.S))
         {
-            moveDirection.x = -1; // X軸 負方向 (マップ上は S/X-)
-            SetActiveWeaponDisplay(2, true); // 向き(2=S)をセット
-            keyPressed = true;
+            // 向き(2=S)をセット
+            SetActiveWeaponDisplay(2, true);
         }
         else if (Input.GetKeyDown(KeyCode.A))
         {
-            moveDirection.z = 1; // Z軸 正方向 (マップ上は A/Z+)
-            SetActiveWeaponDisplay(0, true); // 向き(0=A)をセット
-            keyPressed = true;
+            // 向き(0=A)をセット
+            SetActiveWeaponDisplay(0, true);
         }
         else if (Input.GetKeyDown(KeyCode.D))
         {
-            moveDirection.z = -1; // Z軸 負方向 (マップ上は D/Z-)
-            SetActiveWeaponDisplay(1, true); // 向き(1=D)をセット
-            keyPressed = true;
+            // 向き(1=D)をセット
+            SetActiveWeaponDisplay(1, true);
+        }
+        // --- SPACEキーによる「現在の視点方向への移動」 ---
+        else if (Input.GetKeyDown(KeyCode.Space))
+        {
+            if (GameManager.instance != null)
+            {
+                // GameManagerから現在の向きを取得
+                int directionIndex = GameManager.instance.currentWeaponDirectionIndex;
+
+                // 向きインデックス(0=A, 1=D, 2=S, 3=W)に応じて移動方向を決定
+                switch (directionIndex)
+                {
+                    case 0: // A (Z+)
+                        moveDirection.z = 1;
+                        break;
+                    case 1: // D (Z-)
+                        moveDirection.z = -1;
+                        break;
+                    case 2: // S (X-)
+                        moveDirection.x = -1;
+                        break;
+                    case 3: // W (X+)
+                        moveDirection.x = 1;
+                        break;
+                }
+
+                // 移動キーが押された（＝ターン消費）
+                keyPressed = true;
+            }
         }
         // --- Cキーによる武器の切り替え ---
         else if (Input.GetKeyDown(KeyCode.C))
@@ -200,13 +225,13 @@ public class PlayerController : MonoBehaviour
         // ターン制処理の基点となる、プレイヤーの「移動前の位置」を記録
         Vector3 playerPosBeforeMove = transform.position;
 
-        // 2. プレイヤーの移動処理（TryMove）を実行
+        // 2. プレイヤーの移動処理（TryMove）を実行 (SPACEが押された場合のみ)
         if (moveDirection != Vector3.zero)
         {
             TryMove(moveDirection);
         }
 
-        // 3. 移動キー（WASD）が押されていた場合のみ、敵のターンを実行
+        // 3. 移動キー（SPACE）が押されていた場合のみ、敵のターンを実行
         if (keyPressed)
         {
             // シーン上のすべての "EnemyController" を検索
@@ -467,7 +492,7 @@ public class PlayerController : MonoBehaviour
         {
             case 0: // 現在 Level 0 (level1) にいる場合
                 // 踏んだ座標が (x=13, z=13) なら Index 1 (Level 2) へ
-                if (stairCoord.x == 13 && stairCoord.y == 13) return 1;
+                if (stairCoord.x == 4 && stairCoord.y == 11) return 1;
                 break;
 
             case 1: // 現在 Level 1 (level2) にいる場合
